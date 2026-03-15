@@ -1,102 +1,161 @@
-var balance: Double = 10000; // начальный баланс бота
-var pricesOfBuy = [Double](); // массив с купленными акциями до закрытия сделки (продажи)
-var tradeResult: Double = 0; // результат закрытой сделки
-var sumOfTradeResults: Double = 0; // сумма всех закрытых сделок бота
-
-// функция нахождения среднего арифметического в массиве
-func calcAverage (array: [Double]) -> Double? {
+// количество операций на рынке ценных бумаг
+enum OperationsAmount {
+    case small
+    case medium
+    case large
     
-    guard !array.isEmpty else {
-        return nil;
-    }
-    
-    var sum: Double = 0
-    for i in array {
-        sum += i;
-    }
-    return sum / Double(array.count);
-}
-
-// бот занимается скальпингом на акциях газпрома
-// Начальный баланс - 10000 рублей (2 месяца откладывал с обедов).
-// Цена - случайное вещественное число в диапазоне от 100 до 200 рублей
-// Количество сделок - 1000.
-for _ in 0...999 {
-    let currentPrice: Double = Double.random(in: 100...200); // текущая цена акции
-    let numberOfSellOrders: Int = Int.random(in: 0...10000); // количество заявок на продажу в биржевом стакане
-    let numberOfBuyOrders: Int = Int.random(in: 0...10000); // количество заявок на покупку в биржевом стакане
-    let spreadBetweenOrders: Int = numberOfSellOrders - numberOfBuyOrders; // разница в количестве заявок
-    let wantToSell: Bool = numberOfSellOrders > numberOfBuyOrders; // условие для продажи акций: кол-во заявок на продажу > больше кол-ва заявок на покупку
-        
-    /*
-     блок срабатывает, если нет акций и бот хочет их продать
-     или если баланс меньше текущей стоимости акции и бот хочет ее купить
-    */
-    guard !(pricesOfBuy.isEmpty && wantToSell) && !(balance < currentPrice && !wantToSell) else {
-        print("\(currentPrice) рублей - игнорирование");
-        print("---");
-        continue;
-    }
-    
-    /*
-     Логика работы бота:
-     При спреде в заявках 0 < spread < 400 пропускаем итерацию, бот ничего не делает.
-     При спреде в заявках spread >= 400 продаем все имеющиеся на руках акции по текущей цене.
-     Во всех остальных случаях бот покупает акцию.
-     */
-    
-    // игнорирование
-    if wantToSell && spreadBetweenOrders < 400 {
-        print("\(currentPrice) рублей - игнорирование");
-        continue;
-    }
-    
-    // покупка
-    else if wantToSell && spreadBetweenOrders >= 400 {
-        guard let avgPrice = calcAverage(array: pricesOfBuy) else {
-            continue;
+    var amount: Int {
+        switch self {
+        case .small:
+            return Int.random(in: 1..<20)
+            
+        case .medium:
+            return Int.random(in: 20..<40)
+            
+        case .large:
+            return Int.random(in: 40..<80)
         }
-        
-        var stocksAmount: Int = pricesOfBuy.count;
-        tradeResult = currentPrice * Double(stocksAmount) - avgPrice * Double(stocksAmount);
-        sumOfTradeResults += tradeResult;
-        balance += currentPrice * Double(stocksAmount);
-        
-        print("\(currentPrice) рублей - продажа (\(stocksAmount) акций на счету)");
-        print("Продажа FROM = \(avgPrice) -> TO = \(currentPrice), INCOME = \(tradeResult)");
-        
-        pricesOfBuy.removeAll();
     }
-    
-    // продажа (все остальные случаи)
-    else {
-        pricesOfBuy.append(currentPrice);
-        balance -= currentPrice;
-        
-        print("\(currentPrice) рублей - покупка");
-    }
-    
-    print("---");
 }
 
-// продажа акций по текущей цене, если они остались на руках после завершения цикла
-let currentPrice: Double = Double.random(in: 100...200); // текущая цена акции
-if !pricesOfBuy.isEmpty {
-    let avgPrice: Double? = calcAverage(array: pricesOfBuy);
-    
-    var stocksAmount: Int = pricesOfBuy.count;
-    // смело распаковываю optional, т.к. в условии уже стоит "!pricesOfBuy.isEmpty"
-    tradeResult = currentPrice * Double(stocksAmount) - avgPrice! * Double(stocksAmount);
-    sumOfTradeResults += tradeResult;
-    balance += currentPrice * Double(stocksAmount);
-    
-    print("\(currentPrice) рублей - продажа (\(stocksAmount) акций на счету)");
-    print("Продажа FROM = \(avgPrice!) -> TO = \(currentPrice), INCOME = \(tradeResult)");
-    
-    pricesOfBuy.removeAll();
-    
-    print("---");
+enum Action {
+    case buy
+    case sell
+    case ignore
 }
 
-print("Итоговый баланс: \(balance.rounded())");
-print("Результат сделок бота: \(sumOfTradeResults.rounded())");
+// состояние конкретной итерации на рынке
+struct MarketSnapshot {
+    let currentPrice: Double
+    let buyOrders: Int
+    let sellOrders: Int
+
+    var spread: Int {
+        sellOrders - buyOrders
+    }
+
+    var wantsToSell: Bool {
+        sellOrders > buyOrders
+    }
+}
+
+protocol PrintOperation {
+    func printOperations(_ amount: OperationsAmount)
+}
+
+final class Stock: PrintOperation {
+    private var balance: Double
+    
+    // все цены, по которым покупались акции
+    private var buyPrices = [Double]()
+    
+    // результат конкретной закрытой сделки
+    private var tradeResult: Double = 0
+    
+    // общий результат всех сделок
+    private var totalTradeResult: Double = 0
+    
+    init(balance: Double) {
+        self.balance = balance
+    }
+    
+    private var stocksAmount: Int {
+        buyPrices.count
+    }
+    
+    private var averageBuyPrice: Double? {
+        guard !buyPrices.isEmpty else { return nil }
+        return buyPrices.reduce(0, +) / Double(buyPrices.count)
+    }
+    
+    private func makeSnapshot() -> MarketSnapshot {
+        MarketSnapshot(
+            currentPrice: Double.random(in: 100...200),
+            buyOrders: Int.random(in: 0...10000),
+            sellOrders: Int.random(in: 0...10000)
+        )
+    }
+    
+    private func makeDecision(snapshot: MarketSnapshot) -> Action {
+        if snapshot.wantsToSell {
+            // если акции есть на руках и спрэд >= 400, то продаем, иначе игнор
+            return !buyPrices.isEmpty && snapshot.spread >= 400 ? .sell : .ignore
+        } else {
+            // если баланса хватает, то покупаем
+            return balance > snapshot.currentPrice ? .buy : .ignore
+        }
+    }
+    
+    // вычисления для каждой из операций
+    private func execute(_ action: Action, snapshot: MarketSnapshot) -> (startPrice: Double?, income: Double?) {
+        switch action {
+        case .buy:
+            buyPrices.append(snapshot.currentPrice)
+            balance -= snapshot.currentPrice
+            return (nil, nil)
+            
+        case .sell:
+            guard let averageBuyPrice else { return (nil, nil) }
+            
+            let startPrice = averageBuyPrice
+            let amount = Double(stocksAmount)
+            tradeResult = (snapshot.currentPrice - averageBuyPrice) * amount
+            totalTradeResult += tradeResult
+            balance += snapshot.currentPrice * Double(stocksAmount)
+            buyPrices.removeAll()
+            return (startPrice, tradeResult)
+
+        case .ignore:
+            return (nil, nil)
+        }
+    }
+    
+    func printOperations(_ amount: OperationsAmount) {
+        for _ in 0..<amount.amount {
+            let snapshot = makeSnapshot()
+            let action = makeDecision(snapshot: snapshot)
+            let dealInfo = execute(action, snapshot: snapshot)
+
+            switch action {
+            case .buy:
+                print("\(snapshot.currentPrice) рублей - покупка")
+
+            case .sell:
+                print("\(snapshot.currentPrice) рублей - продажа")
+                if let startPrice = dealInfo.startPrice, let income = dealInfo.income {
+                    print("Продажа FROM = \(startPrice) -> TO = \(snapshot.currentPrice), INCOME = \(income)")
+                }
+
+            case .ignore:
+                print("\(snapshot.currentPrice) рублей - игнорирование")
+            }
+        }
+        closeRemainingPosition()
+        print("---")
+        print("Итоговый баланс: \(balance)")
+        print("Общий результат сделок: \(totalTradeResult)")
+    }
+}
+
+extension Stock {
+    private func closeRemainingPosition() {
+        guard !buyPrices.isEmpty, let averageBuyPrice else {
+            return
+        }
+
+        let finalPrice = Double.random(in: 100...200)
+        let startPrice = averageBuyPrice
+        let amount = Double(stocksAmount)
+        tradeResult = (finalPrice - averageBuyPrice) * amount
+        totalTradeResult += tradeResult
+        balance += finalPrice * Double(stocksAmount)
+
+        print("\(finalPrice) рублей - продажа")
+        print("Продажа FROM = \(startPrice) -> TO = \(finalPrice), INCOME = \(tradeResult)")
+
+        buyPrices.removeAll()
+    }
+}
+
+let stock = Stock(balance: 10000)
+stock.printOperations(.large)
