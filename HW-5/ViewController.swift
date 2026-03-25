@@ -1,7 +1,6 @@
 import UIKit
 
 final class ViewController: UIViewController {
-    
     private let stackView = UIStackView()
     private let balanceLabel = UILabel()
     private static let startBalance: Double = 10000
