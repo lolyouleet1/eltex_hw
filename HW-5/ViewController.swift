@@ -74,7 +74,7 @@ private extension ViewController {
             stackView.topAnchor.constraint(equalTo: view.topAnchor, constant: view.bounds.height * 0.7),
             NSLayoutConstraint(item: stackView, attribute: .leading, relatedBy: .equal, toItem: view, attribute: .leading, multiplier: 1, constant: 48),
             NSLayoutConstraint(item: stackView, attribute: .width, relatedBy: .equal, toItem: view, attribute: .width, multiplier: 0.37, constant: 0),
-            NSLayoutConstraint(item: stackView, attribute: .height, relatedBy: .equal, toItem: view, attribute: .height, multiplier: 0.125, constant: 0),
+            NSLayoutConstraint(item: stackView, attribute: .height, relatedBy: .equal, toItem: view, attribute: .height, multiplier: 0.125, constant: 0)
         ])
     }
     
