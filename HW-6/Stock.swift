@@ -1,3 +1,5 @@
+import Foundation
+
 // количество операций на рынке ценных бумаг
 enum OperationsAmount {
     case small
@@ -54,7 +56,7 @@ final class Stock: PrintOperation {
     
     // общий результат всех сделок
     private var totalTradeResult: Double = 0
-    var operations: [String] = []
+    var operations: [Operation] = []
     
     init(balance: Double) {
         self.balance = balance
@@ -137,31 +139,40 @@ final class Stock: PrintOperation {
         print("Общий результат сделок: \(totalTradeResult)")
     }
     
-    func getOperations(_ amount: Int) -> [String] {
+    func getOperations(_ amount: Int) -> [Operation] {
         for _ in 0..<amount {
             let snapshot = makeSnapshot()
             let action = makeDecision(snapshot: snapshot)
             let dealInfo = execute(action, snapshot: snapshot)
-            operations = []
 
             switch action {
             case .buy:
-                operations.append("\(snapshot.currentPrice) рублей - покупка")
+                operations.append(Operation(id: UUID(),
+                                            text: "\(snapshot.currentPrice) рублей - покупка",
+                                            operationType: 1))
 
             case .sell:
-                operations.append("\(snapshot.currentPrice) рублей - продажа")
+//                operations.append(Operation(id: UUID(),
+//                                            text: "\(snapshot.currentPrice) рублей - продажа",
+//                                            operationType: 2))
                 if let startPrice = dealInfo.startPrice, let income = dealInfo.income {
-                    operations.append("Продажа FROM = \(startPrice) -> TO = \(snapshot.currentPrice), INCOME = \(income)")
+                    operations.append(Operation(id: UUID(),
+                                                text: "Продажа FROM = \(startPrice) -> TO = \(snapshot.currentPrice), INCOME = \(income)",
+                                                operationType: 2))
                 }
 
             case .ignore:
-                operations.append("\(snapshot.currentPrice) рублей - игнорирование")
+                operations.append(Operation(id: UUID(),
+                                            text: "\(snapshot.currentPrice) рублей - игнорирование",
+                                            operationType: 0))
             }
         }
         closeRemainingPosition()
-
+        
         return operations
     }
+    
+    
 }
 
 extension Stock {
@@ -177,8 +188,12 @@ extension Stock {
         totalTradeResult += tradeResult
         balance += finalPrice * Double(stocksAmount)
 
-        operations.append("\(finalPrice) рублей - продажа")
-        operations.append("Продажа FROM = \(startPrice) -> TO = \(finalPrice), INCOME = \(tradeResult)")
+//        operations.append(Operation(id: UUID(),
+//                                    text: "\(finalPrice) рублей - продажа",
+//                                    operationType: 2))
+        operations.append(Operation(id: UUID(),
+                                    text: "Продажа FROM = \(startPrice) -> TO = \(finalPrice), INCOME = \(tradeResult)",
+                                    operationType: 2))
 //        print("\(finalPrice) рублей - продажа")
 //        print("Продажа FROM = \(startPrice) -> TO = \(finalPrice), INCOME = \(tradeResult)")
 

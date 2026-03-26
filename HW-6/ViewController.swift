@@ -14,13 +14,19 @@ final class ViewController: UIViewController {
     private let enableLabel = UILabel()
     private let setCyclesView = UIView()
     private let gpbImage = UIImageView()
-    private let tableView = TradeHistoryController()
-    private var decisionsArray: [String] = []
+    private let tableView = UITableView()
+    
+    private var operations: [Operation] = [] {
+        didSet {
+            tableView.reloadData()
+        }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
         setupUI()
+        addSubview()
         setupStack()
         setupSetCyclesView()
         setupButtonAction()
@@ -31,6 +37,102 @@ final class ViewController: UIViewController {
 
 // MARK: - Private Methods
 private extension ViewController {
+    func setupUI() {
+        view.backgroundColor = .white
+        
+        tableView.register(TableViewCell.self, forCellReuseIdentifier: TableViewCell.identifier)
+        tableView.isHidden = true
+        tableView.dataSource = self
+        tableView.delegate = self
+    }
+    
+    func addSubview() {
+        view.addSubview(stackView)
+        switchView.addSubview(botEnabledSwitch)
+        switchView.addSubview(enableLabel)
+        view.addSubview(setCyclesView)
+        view.addSubview(noDataLabel)
+        view.addSubview(tableView)
+    }
+    
+    func setupButtonAction() {
+        startBotButton.addTarget(self, action: #selector(handleStartBotButtonTapped), for: .touchUpInside)
+    }
+    
+    func setupStack() {
+        balanceLabel.text = "Balance: \(stock.balance)"
+        balanceLabel.backgroundColor = .gray
+        balanceLabel.textColor = .black
+        
+        profitLabel.text = "Profit: 0"
+        profitLabel.backgroundColor = .gray
+        profitLabel.textColor = .black
+        
+        startBotButton.setTitle("START BOT", for: .normal)
+        startBotButton.backgroundColor = .purple
+        startBotButton.tintColor = .white
+        startBotButton.layer.cornerRadius = 15
+        
+        stackView.spacing = 8
+        stackView.axis = .vertical
+        
+        stackView.addArrangedSubview(balanceLabel)
+        stackView.addArrangedSubview(profitLabel)
+        stackView.addArrangedSubview(startBotButton)
+    }
+    
+    func setupSetCyclesView() {
+        setCyclesField.placeholder = "How many operations?"
+        setCyclesField.borderStyle = .roundedRect
+        
+        gpbImage.image = UIImage(named: "gpb")
+        
+        botEnabledSwitch.isOn = true
+        
+        enableLabel.text = "Allow the bot to work:"
+        
+        setCyclesView.addSubview(switchView)
+        setCyclesView.addSubview(setCyclesField)
+        setCyclesView.addSubview(gpbImage)
+    }
+    
+    func handleLabelColor(finalBalance: Double, finalProfit: Double) {
+        let balanceColor: UIColor = finalBalance < Self.startBalance ? .red : .green
+        let profitColor: UIColor = finalProfit < 0 ? .red : .green
+
+        balanceLabel.backgroundColor = balanceColor
+        profitLabel.backgroundColor = profitColor
+    }
+    
+    @objc func handleStartBotButtonTapped() {
+        guard let text = setCyclesField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let cycles = Int(text),
+              cycles > 0 else {
+            return
+        }
+        
+        if botEnabledSwitch.isOn {
+            let (finalBalance, finalProfit) = stock.getFinalResult(cycles)
+            balanceLabel.text = "Balance: \(Int(finalBalance.rounded()))"
+            profitLabel.text = "Profit: \(Int(finalProfit.rounded()))"
+            
+            handleLabelColor(finalBalance: finalBalance, finalProfit: finalProfit)
+            
+            noDataLabel.isHidden = true
+            tableView.isHidden = false
+            
+            operations = stock.getOperations(cycles)
+        }
+        for operation in operations {
+            print(operation.text)
+        }
+    }
+    
+    func setupNoDataLabel() {
+        noDataLabel.text = "WARNING: not enought data"
+        noDataLabel.backgroundColor = .red
+    }
+    
     func setupConstraints() {
         noDataLabel.translatesAutoresizingMaskIntoConstraints = false
         switchView.translatesAutoresizingMaskIntoConstraints = false
@@ -41,6 +143,7 @@ private extension ViewController {
         startBotButton.translatesAutoresizingMaskIntoConstraints = false
         setCyclesView.translatesAutoresizingMaskIntoConstraints = false
         gpbImage.translatesAutoresizingMaskIntoConstraints = false
+        tableView.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
             // MARK: - noDataLabel constraints
@@ -76,92 +179,36 @@ private extension ViewController {
             stackView.topAnchor.constraint(equalTo: view.topAnchor, constant: view.bounds.height * 0.7),
             NSLayoutConstraint(item: stackView, attribute: .leading, relatedBy: .equal, toItem: view, attribute: .leading, multiplier: 1, constant: 48),
             NSLayoutConstraint(item: stackView, attribute: .width, relatedBy: .equal, toItem: view, attribute: .width, multiplier: 0.37, constant: 0),
-            NSLayoutConstraint(item: stackView, attribute: .height, relatedBy: .equal, toItem: view, attribute: .height, multiplier: 0.125, constant: 0)
+            NSLayoutConstraint(item: stackView, attribute: .height, relatedBy: .equal, toItem: view, attribute: .height, multiplier: 0.125, constant: 0),
+            
+            // MARK: - tableView constraints
+            tableView.topAnchor.constraint(equalTo: setCyclesView.bottomAnchor, constant: 24),
+            tableView.bottomAnchor.constraint(equalTo: stackView.topAnchor, constant: -24),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8)
         ])
     }
-    
-    func setupUI() {
-        view.backgroundColor = .white
-    }
-    
-    func setupButtonAction() {
-        startBotButton.addTarget(self, action: #selector(handleStartBotButtonTapped), for: .touchUpInside)
-    }
-    
-    func setupStack() {
-        balanceLabel.text = "Balance: \(stock.balance)"
-        balanceLabel.backgroundColor = .gray
-        balanceLabel.textColor = .black
-        
-        profitLabel.text = "Profit: 0"
-        profitLabel.backgroundColor = .gray
-        profitLabel.textColor = .black
-        
-        startBotButton.setTitle("START BOT", for: .normal)
-        startBotButton.backgroundColor = .purple
-        startBotButton.tintColor = .white
-        startBotButton.layer.cornerRadius = 15
-        
-        stackView.spacing = 8
-        stackView.axis = .vertical
-        
-        stackView.addArrangedSubview(balanceLabel)
-        stackView.addArrangedSubview(profitLabel)
-        stackView.addArrangedSubview(startBotButton)
-        view.addSubview(stackView)
-    }
-    
-    func setupSetCyclesView() {
-        setCyclesField.placeholder = "How many operations?"
-        setCyclesField.borderStyle = .roundedRect
-        
-        gpbImage.image = UIImage(named: "gpb")
-        
-        botEnabledSwitch.isOn = true
-        switchView.addSubview(botEnabledSwitch)
-        
-        enableLabel.text = "Allow the bot to work:"
-        switchView.addSubview(enableLabel)
-        
-        setCyclesView.addSubview(switchView)
-        setCyclesView.addSubview(setCyclesField)
-        setCyclesView.addSubview(gpbImage)
-        view.addSubview(setCyclesView)
-    }
-    
-    func handleLabelColor(finalBalance: Double, finalProfit: Double) {
-        let balanceColor: UIColor = finalBalance < Self.startBalance ? .red : .green
-        let profitColor: UIColor = finalProfit < 0 ? .red : .green
+}
 
-        balanceLabel.backgroundColor = balanceColor
-        profitLabel.backgroundColor = profitColor
+extension ViewController: UITableViewDataSource {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return operations.count
     }
     
-    @objc func handleStartBotButtonTapped() {
-        guard let text = setCyclesField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
-              let cycles = Int(text),
-              cycles > 0 else {
-            return
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        if let cell = tableView.dequeueReusableCell(withIdentifier: TableViewCell.identifier),
+           let tableViewCell = cell as? TableViewCell {
+            let operation = operations[indexPath.row]
+            tableViewCell.currentOperation = operation
+            tableViewCell.selectionStyle = .none
+            return tableViewCell
         }
-        
-        if botEnabledSwitch.isOn {
-            let (finalBalance, finalProfit) = stock.getFinalResult(cycles)
-            balanceLabel.text = "Balance: \(Int(finalBalance.rounded()))"
-            profitLabel.text = "Profit: \(Int(finalProfit.rounded()))"
-            
-            handleLabelColor(finalBalance: finalBalance, finalProfit: finalProfit)
-            
-            noDataLabel.isHidden = true
-            
-            decisionsArray = stock.getOperations(cycles)
-        }
-        print(decisionsArray)
+        return UITableViewCell()
     }
-    
-    func setupNoDataLabel() {
-        noDataLabel.text = "WARNING: not enought data"
-        noDataLabel.backgroundColor = .red
-        
-        view.addSubview(noDataLabel)
+}
+
+extension ViewController: UITableViewDelegate {
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        print("\(indexPath)")
     }
 }
