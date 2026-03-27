@@ -17,6 +17,7 @@ struct Operation {
 
 final class TableViewCell: UITableViewCell {
     private let operationLabel = UILabel()
+    private let additionalView = UIView()
     
     var currentOperation: Operation? {
         didSet {
@@ -56,19 +57,29 @@ private extension TableViewCell {
     func setupUI() {
         operationLabel.textColor = .black
         operationLabel.numberOfLines = .zero
+        operationLabel.font = .systemFont(ofSize: 12)
+        
+        additionalView.backgroundColor = .purple
     }
     
     func addSubview() {
         contentView.addSubview(operationLabel)
+        contentView.addSubview(additionalView)
     }
     
     func setupConstraints() {
         operationLabel.translatesAutoresizingMaskIntoConstraints = false
+        additionalView.translatesAutoresizingMaskIntoConstraints = false
         
+        operationLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 0).isActive = true
+        operationLabel.heightAnchor.constraint(equalToConstant: 42).isActive = true
         operationLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12).isActive = true
         operationLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12).isActive = true
-        operationLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8).isActive = true
-        operationLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8).isActive = true
+        
+        additionalView.topAnchor.constraint(equalTo: operationLabel.bottomAnchor, constant: 0).isActive = true
+        additionalView.heightAnchor.constraint(equalToConstant: 16).isActive = true
+        additionalView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12).isActive = true
+        additionalView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12).isActive = true
     }
 }
 
