@@ -44,6 +44,7 @@ private extension ViewController {
         tableView.isHidden = true
         tableView.dataSource = self
         tableView.delegate = self
+        tableView.separatorStyle = .none
     }
     
     func addSubview() {
