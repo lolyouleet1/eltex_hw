@@ -43,17 +43,16 @@ private extension ViewController {
         tableView.register(TableViewCell.self, forCellReuseIdentifier: TableViewCell.identifier)
         tableView.isHidden = true
         tableView.dataSource = self
-        tableView.delegate = self
         tableView.separatorStyle = .none
     }
     
     func addSubview() {
         view.addSubview(stackView)
-        switchView.addSubview(botEnabledSwitch)
-        switchView.addSubview(enableLabel)
         view.addSubview(setCyclesView)
         view.addSubview(noDataLabel)
         view.addSubview(tableView)
+        switchView.addSubview(botEnabledSwitch)
+        switchView.addSubview(enableLabel)
     }
     
     func setupButtonAction() {
@@ -123,9 +122,6 @@ private extension ViewController {
             tableView.isHidden = false
             
             operations = stock.getOperations(cycles)
-        }
-        for operation in operations {
-            print(operation.text)
         }
     }
     
@@ -205,11 +201,5 @@ extension ViewController: UITableViewDataSource {
             return tableViewCell
         }
         return UITableViewCell()
-    }
-}
-
-extension ViewController: UITableViewDelegate {
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        print("\(indexPath)")
     }
 }
