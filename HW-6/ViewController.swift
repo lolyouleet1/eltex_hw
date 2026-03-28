@@ -126,7 +126,7 @@ private extension ViewController {
     }
     
     func setupNoDataLabel() {
-        noDataLabel.text = "WARNING: not enought data"
+        noDataLabel.text = "WARNING: not enough data"
         noDataLabel.backgroundColor = .red
     }
     
