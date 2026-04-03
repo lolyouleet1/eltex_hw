@@ -1,7 +1,9 @@
 import UIKit
 
 enum OperationType {
-    case buy, sell, ignore
+    case buy
+    case sell
+    case ignore
 }
 
 struct Operation {
@@ -11,101 +13,123 @@ struct Operation {
 }
 
 final class TableViewCell: UITableViewCell {
-    private let operationLabel = UILabel()
-    private let additionalView = UIView()
+    
+    static let identifier = "TableViewCell"
+    
+    private enum Constants {
+        static let horizontalInset: CGFloat = 12
+        static let labelFontSize: CGFloat = 14
+        static let buySellLabelHeight: CGFloat = 42
+        static let ignoreLabelHeight: CGFloat = 30
+        static let additionalViewHeight: CGFloat = 16
+        static let zeroHeight: CGFloat = 0
+    }
+    
+    private let operationLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.textColor = .black
+        label.numberOfLines = 0
+        label.font = .systemFont(ofSize: Constants.labelFontSize)
+        return label
+    }()
+    
+    private let additionalView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = .clear
+        return view
+    }()
+    
     private var additionalViewHeightConstraint: NSLayoutConstraint!
     private var operationLabelHeightConstraint: NSLayoutConstraint!
     
     var currentOperation: Operation? {
         didSet {
-            updateUI()
+            updateAppearance()
         }
     }
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         
-        setupUI()
-        addSubview()
+        setupViews()
+        setupHierarchy()
         setupConstraints()
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
     
     override func prepareForReuse() {
         super.prepareForReuse()
         
         currentOperation = nil
-        operationLabel.text = nil
-        operationLabel.backgroundColor = .clear
-        operationLabelHeightConstraint.constant = 0
-        additionalViewHeightConstraint.constant = 0
-        additionalView.backgroundColor = .clear
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        resetAppearance()
     }
 }
 
 // MARK: - Private Methods
 private extension TableViewCell {
-    func updateUI() {
-        guard let currentOperation else { return }
-        operationLabel.text = currentOperation.text
-
-        switch currentOperation.operationType {
+    func updateAppearance() {
+        guard let operation = currentOperation else { return }
+        
+        operationLabel.text = operation.text
+        
+        switch operation.operationType {
         case .buy:
             operationLabel.backgroundColor = .green
-            operationLabelHeightConstraint.constant = 42
+            operationLabelHeightConstraint.constant = Constants.buySellLabelHeight
             additionalView.backgroundColor = .green
-            additionalViewHeightConstraint.constant = 16
+            additionalViewHeightConstraint.constant = Constants.additionalViewHeight
             
         case .sell:
             operationLabel.backgroundColor = .red
-            operationLabelHeightConstraint.constant = 42
+            operationLabelHeightConstraint.constant = Constants.buySellLabelHeight
             additionalView.backgroundColor = .red
-            additionalViewHeightConstraint.constant = 16
+            additionalViewHeightConstraint.constant = Constants.additionalViewHeight
             
         case .ignore:
             operationLabel.backgroundColor = .yellow
-            operationLabelHeightConstraint.constant = 30
-            additionalViewHeightConstraint.constant = 0
+            operationLabelHeightConstraint.constant = Constants.ignoreLabelHeight
+            additionalView.backgroundColor = .clear
+            additionalViewHeightConstraint.constant = Constants.zeroHeight
         }
     }
     
-    func setupUI() {
-        operationLabel.textColor = .black
-        operationLabel.numberOfLines = .zero
-        operationLabel.font = .systemFont(ofSize: 14)
-        
+    func resetAppearance() {
+        operationLabel.text = nil
+        operationLabel.backgroundColor = .clear
+        operationLabelHeightConstraint.constant = Constants.zeroHeight
+        additionalView.backgroundColor = .clear
+        additionalViewHeightConstraint.constant = Constants.zeroHeight
+    }
+    
+    func setupViews() {
         additionalView.backgroundColor = .clear
     }
     
-    func addSubview() {
+    func setupHierarchy() {
         contentView.addSubview(operationLabel)
         contentView.addSubview(additionalView)
     }
     
     func setupConstraints() {
-        operationLabel.translatesAutoresizingMaskIntoConstraints = false
-        additionalView.translatesAutoresizingMaskIntoConstraints = false
+        additionalViewHeightConstraint = additionalView.heightAnchor.constraint(equalToConstant: Constants.zeroHeight)
+        operationLabelHeightConstraint = operationLabel.heightAnchor.constraint(equalToConstant: Constants.zeroHeight)
         
-        additionalViewHeightConstraint = additionalView.heightAnchor.constraint(equalToConstant: 0)
-        operationLabelHeightConstraint = operationLabel.heightAnchor.constraint(equalToConstant: 0)
-        
-        operationLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 0).isActive = true
-        operationLabelHeightConstraint.isActive = true
-        operationLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12).isActive = true
-        operationLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12).isActive = true
-        
-        additionalView.topAnchor.constraint(equalTo: operationLabel.bottomAnchor, constant: 0).isActive = true
-        additionalViewHeightConstraint.isActive = true
-        additionalView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: 0).isActive = true
-        additionalView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12).isActive = true
-        additionalView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12).isActive = true
+        NSLayoutConstraint.activate([
+            operationLabel.topAnchor.constraint(equalTo: contentView.topAnchor),
+            operationLabelHeightConstraint,
+            operationLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Constants.horizontalInset),
+            operationLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Constants.horizontalInset),
+            
+            additionalView.topAnchor.constraint(equalTo: operationLabel.bottomAnchor),
+            additionalViewHeightConstraint,
+            additionalView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            additionalView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Constants.horizontalInset),
+            additionalView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Constants.horizontalInset)
+        ])
     }
-}
-
-// MARK: - Identifier
-extension TableViewCell {
-    static let identifier = "TableViewCell"
 }

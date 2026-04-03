@@ -6,12 +6,20 @@ enum SelectedSide {
     case right
 }
 
-class CollectionViewCell: UICollectionViewCell {
-    private let currencyLabel = UILabel()
+final class CollectionViewCell: UICollectionViewCell {
+    
+    static let identifier = "CollectionViewCell"
+    
+    private let currencyLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = .systemFont(ofSize: 12)
+        return label
+    }()
     
     override init(frame: CGRect) {
         super.init(frame: frame)
-        addSubview()
+        setupHierarchy()
         setupConstraints()
     }
     
@@ -22,40 +30,31 @@ class CollectionViewCell: UICollectionViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         currencyLabel.text = nil
-        currencyLabel.backgroundColor = .clear
         contentView.backgroundColor = .clear
     }
     
-    func configure(_ data: CurrencyCell) {
-        currencyLabel.text = data.label
-        switch data.selectedSide {
+    func configure(with currency: CurrencyCell) {
+        currencyLabel.text = currency.label
+        
+        switch currency.selectedSide {
         case .none:
-            contentView.backgroundColor = data.colorIfNotSelected
-        case .left:
-            contentView.backgroundColor = data.colorIfSelected
-        case .right:
-            contentView.backgroundColor = data.colorIfSelected
+            contentView.backgroundColor = currency.colorIfNotSelected
+        case .left, .right:
+            contentView.backgroundColor = currency.colorIfSelected
         }
-        currencyLabel.font =  UIFont.systemFont(ofSize: 12)
     }
 }
 
 // MARK: - Private Methods
 private extension CollectionViewCell {
-    func addSubview() {
+    func setupHierarchy() {
         contentView.addSubview(currencyLabel)
     }
     
     func setupConstraints() {
-        currencyLabel.translatesAutoresizingMaskIntoConstraints = false
-        
         NSLayoutConstraint.activate([
             currencyLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
             currencyLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
         ])
     }
-}
-
-extension CollectionViewCell {
-    static let identifier = "CollectionViewCell"
 }

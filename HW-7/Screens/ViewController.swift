@@ -1,65 +1,92 @@
 import UIKit
 
 final class ViewController: UIViewController {
+    
+    // MARK: - Constants
+    private enum Constants {
+        static let startBalance: Double = 10_000
+        static let stackSpacing: CGFloat = 8
+        static let horizontalInset: CGFloat = 16
+        static let topInset: CGFloat = 16
+        static let sectionSpacing: CGFloat = 24
+        static let imageSize: CGFloat = 48
+        static let imageToFieldSpacing: CGFloat = 16
+        static let switchSectionTopSpacing: CGFloat = 16
+        static let switchTopSpacing: CGFloat = 8
+        static let buttonCornerRadius: CGFloat = 15
+        static let tableHorizontalInset: CGFloat = 8
+    }
+    
+    // MARK: - UI
     private let stackView = UIStackView()
     private let balanceLabel = UILabel()
-    private static let startBalance: Double = 10000
-    private let stock = Stock(balance: ViewController.startBalance)
     private let profitLabel = UILabel()
     private let startBotButton = UIButton(type: .system)
-    private let setCyclesField = UITextField()
+    
+    private let cyclesInputContainerView = UIView()
+    private let cyclesTextField = UITextField()
+    private let logoImageView = UIImageView()
+    
+    private let botControlView = UIView()
     private let botEnabledSwitch = UISwitch()
+    private let botEnabledLabel = UILabel()
+    
     private let noDataLabel = UILabel()
-    private let switchView = UIView()
-    private let enableLabel = UILabel()
-    private let setCyclesView = UIView()
-    private let gpbImage = UIImageView()
     private let tableView = UITableView()
     
+    // MARK: - Dependencies
+    private let stock = Stock(balance: Constants.startBalance)
+    
+    // MARK: - State
     private var operations: [Operation] = [] {
         didSet {
             tableView.reloadData()
         }
     }
-
+    
+    // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        setupUI()
-        addSubview()
-        setupStack()
-        setupSetCyclesView()
-        setupButtonAction()
+        setupView()
+        setupTableView()
+        setupHierarchy()
+        setupStackView()
+        setupCyclesInputSection()
         setupNoDataLabel()
+        setupActions()
         setupConstraints()
     }
 }
 
-// MARK: - Private Methods
+// MARK: - Setup
 private extension ViewController {
-    func setupUI() {
-        view.backgroundColor = .white
-        
+    func setupView() {
+        view.backgroundColor = .systemBackground
+    }
+    
+    func setupTableView() {
         tableView.register(TableViewCell.self, forCellReuseIdentifier: TableViewCell.identifier)
         tableView.isHidden = true
         tableView.dataSource = self
         tableView.separatorStyle = .none
     }
     
-    func addSubview() {
+    func setupHierarchy() {
         view.addSubview(stackView)
-        view.addSubview(setCyclesView)
+        view.addSubview(cyclesInputContainerView)
         view.addSubview(noDataLabel)
         view.addSubview(tableView)
-        switchView.addSubview(botEnabledSwitch)
-        switchView.addSubview(enableLabel)
+        
+        cyclesInputContainerView.addSubview(botControlView)
+        cyclesInputContainerView.addSubview(cyclesTextField)
+        cyclesInputContainerView.addSubview(logoImageView)
+        
+        botControlView.addSubview(botEnabledSwitch)
+        botControlView.addSubview(botEnabledLabel)
     }
     
-    func setupButtonAction() {
-        startBotButton.addTarget(self, action: #selector(handleStartBotButtonTapped), for: .touchUpInside)
-    }
-    
-    func setupStack() {
+    func setupStackView() {
         balanceLabel.text = "Balance: \(stock.balance)"
         balanceLabel.backgroundColor = .gray
         balanceLabel.textColor = .black
@@ -71,58 +98,25 @@ private extension ViewController {
         startBotButton.setTitle("START BOT", for: .normal)
         startBotButton.backgroundColor = .purple
         startBotButton.tintColor = .white
-        startBotButton.layer.cornerRadius = 15
+        startBotButton.layer.cornerRadius = Constants.buttonCornerRadius
         
-        stackView.spacing = 8
         stackView.axis = .vertical
+        stackView.spacing = Constants.stackSpacing
         
         stackView.addArrangedSubview(balanceLabel)
         stackView.addArrangedSubview(profitLabel)
         stackView.addArrangedSubview(startBotButton)
     }
     
-    func setupSetCyclesView() {
-        setCyclesField.placeholder = "How many operations?"
-        setCyclesField.borderStyle = .roundedRect
+    func setupCyclesInputSection() {
+        cyclesTextField.placeholder = "How many operations?"
+        cyclesTextField.borderStyle = .roundedRect
         
-        gpbImage.image = UIImage(named: "gpb")
+        logoImageView.image = UIImage(named: "gpb")
         
         botEnabledSwitch.isOn = true
         
-        enableLabel.text = "Allow the bot to work:"
-        
-        setCyclesView.addSubview(switchView)
-        setCyclesView.addSubview(setCyclesField)
-        setCyclesView.addSubview(gpbImage)
-    }
-    
-    func handleLabelColor(finalBalance: Double, finalProfit: Double) {
-        let balanceColor: UIColor = finalBalance < Self.startBalance ? .red : .green
-        let profitColor: UIColor = finalProfit < 0 ? .red : .green
-
-        balanceLabel.backgroundColor = balanceColor
-        profitLabel.backgroundColor = profitColor
-    }
-    
-    @objc func handleStartBotButtonTapped() {
-        guard let text = setCyclesField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
-              let cycles = Int(text),
-              cycles > 0 else {
-            return
-        }
-        
-        if botEnabledSwitch.isOn {
-            let (finalBalance, finalProfit) = stock.getFinalResult(cycles)
-            balanceLabel.text = "Balance: \(Int(finalBalance.rounded()))"
-            profitLabel.text = "Profit: \(Int(finalProfit.rounded()))"
-            
-            handleLabelColor(finalBalance: finalBalance, finalProfit: finalProfit)
-            
-            noDataLabel.isHidden = true
-            tableView.isHidden = false
-            
-            operations = stock.getOperations(cycles)
-        }
+        botEnabledLabel.text = "Allow the bot to work:"
     }
     
     func setupNoDataLabel() {
@@ -130,95 +124,120 @@ private extension ViewController {
         noDataLabel.backgroundColor = .red
     }
     
-    enum Layout {
-            static let horizontalInset: CGFloat = 16
-            static let topInset: CGFloat = 16
-            static let sectionSpacing: CGFloat = 24
+    func setupActions() {
+        startBotButton.addTarget(
+            self,
+            action: #selector(handleStartBotButtonTapped),
+            for: .touchUpInside
+        )
+    }
+}
 
-            static let imageSize: CGFloat = 48
-            static let imageToFieldSpacing: CGFloat = 16
-
-            static let switchSectionTopSpacing: CGFloat = 16
-            static let switchTopSpacing: CGFloat = 8
+// MARK: - Business Logic
+private extension ViewController {
+    func updateResultLabelColors(finalBalance: Double, finalProfit: Double) {
+        let balanceColor: UIColor = finalBalance < Constants.startBalance ? .red : .green
+        let profitColor: UIColor = finalProfit < 0 ? .red : .green
+        
+        balanceLabel.backgroundColor = balanceColor
+        profitLabel.backgroundColor = profitColor
     }
     
+    @objc func handleStartBotButtonTapped() {
+        guard let text = cyclesTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let cycles = Int(text),
+              cycles > 0 else {
+            return
+        }
+        
+        guard botEnabledSwitch.isOn else { return }
+        
+        let (finalBalance, finalProfit) = stock.getFinalResult(cycles)
+        
+        balanceLabel.text = "Balance: \(Int(finalBalance.rounded()))"
+        profitLabel.text = "Profit: \(Int(finalProfit.rounded()))"
+        
+        updateResultLabelColors(finalBalance: finalBalance, finalProfit: finalProfit)
+        
+        noDataLabel.isHidden = true
+        tableView.isHidden = false
+        
+        operations = stock.getOperations(cycles)
+    }
+}
+
+// MARK: - Constraints
+private extension ViewController {
     func setupConstraints() {
-            noDataLabel.translatesAutoresizingMaskIntoConstraints = false
-            switchView.translatesAutoresizingMaskIntoConstraints = false
-            setCyclesField.translatesAutoresizingMaskIntoConstraints = false
-            enableLabel.translatesAutoresizingMaskIntoConstraints = false
-            botEnabledSwitch.translatesAutoresizingMaskIntoConstraints = false
-            stackView.translatesAutoresizingMaskIntoConstraints = false
-            setCyclesView.translatesAutoresizingMaskIntoConstraints = false
-            gpbImage.translatesAutoresizingMaskIntoConstraints = false
-            tableView.translatesAutoresizingMaskIntoConstraints = false
-
-            let guide = view.safeAreaLayoutGuide
-
-            NSLayoutConstraint.activate([
-                // MARK: - noDataLabel
-                noDataLabel.centerXAnchor.constraint(equalTo: guide.centerXAnchor),
-                noDataLabel.centerYAnchor.constraint(equalTo: guide.centerYAnchor),
-
-                // MARK: - setCyclesView
-                setCyclesView.topAnchor.constraint(equalTo: guide.topAnchor, constant: Layout.topInset),
-                setCyclesView.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: Layout.horizontalInset),
-                setCyclesView.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -Layout.horizontalInset),
-
-                // MARK: - gpbImage
-                gpbImage.topAnchor.constraint(equalTo: setCyclesView.topAnchor),
-                gpbImage.leadingAnchor.constraint(equalTo: setCyclesView.leadingAnchor),
-                gpbImage.widthAnchor.constraint(equalToConstant: Layout.imageSize),
-                gpbImage.heightAnchor.constraint(equalToConstant: Layout.imageSize),
-
-                // MARK: - setCyclesField
-                setCyclesField.leadingAnchor.constraint(equalTo: gpbImage.trailingAnchor, constant: Layout.imageToFieldSpacing),
-                setCyclesField.trailingAnchor.constraint(equalTo: setCyclesView.trailingAnchor),
-                setCyclesField.centerYAnchor.constraint(equalTo: gpbImage.centerYAnchor),
-
-                // MARK: - switchView
-                switchView.topAnchor.constraint(equalTo: gpbImage.bottomAnchor, constant: Layout.switchSectionTopSpacing),
-                switchView.leadingAnchor.constraint(equalTo: setCyclesView.leadingAnchor),
-                switchView.trailingAnchor.constraint(equalTo: setCyclesView.trailingAnchor),
-                switchView.bottomAnchor.constraint(equalTo: setCyclesView.bottomAnchor),
-
-                // MARK: - enableLabel
-                enableLabel.topAnchor.constraint(equalTo: switchView.topAnchor),
-                enableLabel.leadingAnchor.constraint(equalTo: switchView.leadingAnchor),
-                enableLabel.trailingAnchor.constraint(lessThanOrEqualTo: switchView.trailingAnchor),
-
-                // MARK: - botEnabledSwitch
-                botEnabledSwitch.topAnchor.constraint(equalTo: enableLabel.bottomAnchor, constant: Layout.switchTopSpacing),
-                botEnabledSwitch.leadingAnchor.constraint(equalTo: switchView.leadingAnchor),
-                botEnabledSwitch.bottomAnchor.constraint(equalTo: switchView.bottomAnchor),
-
-                // MARK: - stackView
-                stackView.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: Layout.horizontalInset),
-                stackView.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -Layout.horizontalInset),
-                stackView.bottomAnchor.constraint(equalTo: guide.bottomAnchor, constant: -Layout.topInset),
-
-                // MARK: - tableView
-                tableView.topAnchor.constraint(equalTo: setCyclesView.bottomAnchor, constant: Layout.sectionSpacing),
-                tableView.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 8),
-                tableView.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -8),
-                tableView.bottomAnchor.constraint(equalTo: stackView.topAnchor, constant: -Layout.sectionSpacing)
+        noDataLabel.translatesAutoresizingMaskIntoConstraints = false
+        botControlView.translatesAutoresizingMaskIntoConstraints = false
+        cyclesTextField.translatesAutoresizingMaskIntoConstraints = false
+        botEnabledLabel.translatesAutoresizingMaskIntoConstraints = false
+        botEnabledSwitch.translatesAutoresizingMaskIntoConstraints = false
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        cyclesInputContainerView.translatesAutoresizingMaskIntoConstraints = false
+        logoImageView.translatesAutoresizingMaskIntoConstraints = false
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        
+        let guide = view.safeAreaLayoutGuide
+        
+        NSLayoutConstraint.activate([
+            noDataLabel.centerXAnchor.constraint(equalTo: guide.centerXAnchor),
+            noDataLabel.centerYAnchor.constraint(equalTo: guide.centerYAnchor),
+            
+            cyclesInputContainerView.topAnchor.constraint(equalTo: guide.topAnchor, constant: Constants.topInset),
+            cyclesInputContainerView.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: Constants.horizontalInset),
+            cyclesInputContainerView.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -Constants.horizontalInset),
+            
+            logoImageView.topAnchor.constraint(equalTo: cyclesInputContainerView.topAnchor),
+            logoImageView.leadingAnchor.constraint(equalTo: cyclesInputContainerView.leadingAnchor),
+            logoImageView.widthAnchor.constraint(equalToConstant: Constants.imageSize),
+            logoImageView.heightAnchor.constraint(equalToConstant: Constants.imageSize),
+            
+            cyclesTextField.leadingAnchor.constraint(equalTo: logoImageView.trailingAnchor, constant: Constants.imageToFieldSpacing),
+            cyclesTextField.trailingAnchor.constraint(equalTo: cyclesInputContainerView.trailingAnchor),
+            cyclesTextField.centerYAnchor.constraint(equalTo: logoImageView.centerYAnchor),
+            
+            botControlView.topAnchor.constraint(equalTo: logoImageView.bottomAnchor, constant: Constants.switchSectionTopSpacing),
+            botControlView.leadingAnchor.constraint(equalTo: cyclesInputContainerView.leadingAnchor),
+            botControlView.trailingAnchor.constraint(equalTo: cyclesInputContainerView.trailingAnchor),
+            botControlView.bottomAnchor.constraint(equalTo: cyclesInputContainerView.bottomAnchor),
+            
+            botEnabledLabel.topAnchor.constraint(equalTo: botControlView.topAnchor),
+            botEnabledLabel.leadingAnchor.constraint(equalTo: botControlView.leadingAnchor),
+            botEnabledLabel.trailingAnchor.constraint(lessThanOrEqualTo: botControlView.trailingAnchor),
+            
+            botEnabledSwitch.topAnchor.constraint(equalTo: botEnabledLabel.bottomAnchor, constant: Constants.switchTopSpacing),
+            botEnabledSwitch.leadingAnchor.constraint(equalTo: botControlView.leadingAnchor),
+            botEnabledSwitch.bottomAnchor.constraint(equalTo: botControlView.bottomAnchor),
+            
+            stackView.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: Constants.horizontalInset),
+            stackView.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -Constants.horizontalInset),
+            stackView.bottomAnchor.constraint(equalTo: guide.bottomAnchor, constant: -Constants.topInset),
+            
+            tableView.topAnchor.constraint(equalTo: cyclesInputContainerView.bottomAnchor, constant: Constants.sectionSpacing),
+            tableView.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: Constants.tableHorizontalInset),
+            tableView.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -Constants.tableHorizontalInset),
+            tableView.bottomAnchor.constraint(equalTo: stackView.topAnchor, constant: -Constants.sectionSpacing)
         ])
     }
 }
 
+// MARK: - UITableViewDataSource
 extension ViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return operations.count
+        operations.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        if let cell = tableView.dequeueReusableCell(withIdentifier: TableViewCell.identifier),
-           let tableViewCell = cell as? TableViewCell {
-            let operation = operations[indexPath.row]
-            tableViewCell.currentOperation = operation
-            tableViewCell.selectionStyle = .none
-            return tableViewCell
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: TableViewCell.identifier) as? TableViewCell else {
+            fatalError("Could not dequeue TableViewCell")
         }
-        return UITableViewCell()
+        
+        let operation = operations[indexPath.row]
+        cell.currentOperation = operation
+        cell.selectionStyle = .none
+        
+        return cell
     }
 }

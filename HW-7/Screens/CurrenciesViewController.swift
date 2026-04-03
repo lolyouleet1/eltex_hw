@@ -1,5 +1,4 @@
 import UIKit
-import Foundation
 
 enum FilterType {
     case all
@@ -8,84 +7,58 @@ enum FilterType {
 }
 
 final class CurrenciesViewController: UIViewController {
-    private let collectionView = UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
-    private let dataProvider = CurrenciesDataProvider()
     
-    private let leftCurrencyLabel: UILabel = {
-        let label = UILabel()
-        label.text = ""
-        label.backgroundColor = .orange
-        label.textAlignment = .center
-        label.isUserInteractionEnabled = true
-        label.layer.borderWidth = 2
-        label.layer.borderColor = UIColor.black.cgColor
-        label.layer.cornerRadius = 10
-        label.clipsToBounds = true
-        return label
-    }()
-    private var leftCurrencyLabelIsBlinking = false
-    private var leftCurrencyLabelTimer: Timer?
-    private var leftCurrencyLabelIsSet = false
-    private var leftCurrencyLabelChosen: String?
+    // MARK: - Constants
+    private enum Constants {
+        static let currencyLabelHeight: CGFloat = 80
+        static let borderWidth: CGFloat = 2
+        static let cornerRadius: CGFloat = 10
+        static let stackSpacing: CGFloat = 8
+        static let exchangeRateStackSpacing: CGFloat = 3
+        static let topSpacing: CGFloat = 10
+        static let collectionTopSpacing: CGFloat = 20
+        static let collectionHorizontalInset: CGFloat = 8
+        static let blinkingInterval: TimeInterval = 0.35
+        static let exchangeRateTimerInterval: TimeInterval = 1.0
+        static let exchangeRateRefreshPeriod = 5
+        static let smallFontSize: CGFloat = 10
+    }
     
-    private let rightCurrencyLabel: UILabel = {
-        let label = UILabel()
-        label.text = ""
-        label.backgroundColor = .orange
-        label.textAlignment = .center
-        label.isUserInteractionEnabled = true
-        label.layer.borderWidth = 2
-        label.layer.borderColor = UIColor.black.cgColor
-        label.layer.cornerRadius = 10
-        label.clipsToBounds = true
-        return label
-    }()
-    private var rightCurrencyLabelIsBlinking = false
-    private var rightCurrencyLabelTimer: Timer?
-    private var rightCurrencyLabelIsSet = false
-    private var rightCurrencyLabelChosen: String?
+    // MARK: - UI
+    private let collectionView = UICollectionView(
+        frame: .zero,
+        collectionViewLayout: UICollectionViewFlowLayout()
+    )
     
-    private let stackView: UIStackView = {
+    private let leftCurrencyLabel = CurrenciesViewController.makeCurrencyLabel()
+    private let rightCurrencyLabel = CurrenciesViewController.makeCurrencyLabel()
+    
+    private let filterStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .horizontal
-        stackView.spacing = 8
+        stackView.spacing = Constants.stackSpacing
         return stackView
     }()
     
-    private let allLabel: UILabel = {
-        let label = UILabel()
-        label.text = "All"
-        label.backgroundColor = .green
-        label.textAlignment = .center
-        label.isUserInteractionEnabled = true
-        return label
-    }()
+    private let allLabel = CurrenciesViewController.makeFilterLabel(
+        text: "All",
+        backgroundColor: .green
+    )
     
-    private let fiatLabel: UILabel = {
-        let label = UILabel()
-        label.text = "Fiat"
-        label.backgroundColor = .lightGray
-        label.textAlignment = .center
-        label.isUserInteractionEnabled = true
-        return label
-    }()
+    private let fiatLabel = CurrenciesViewController.makeFilterLabel(
+        text: "Fiat",
+        backgroundColor: .lightGray
+    )
     
-    private let cryptoLabel: UILabel = {
-        let label = UILabel()
-        label.text = "Crypto"
-        label.backgroundColor = .lightGray
-        label.textAlignment = .center
-        label.isUserInteractionEnabled = true
-        return label
-    }()
-
-    private var activeFilter: FilterType = .all
-    private var exchangeRateTimer: Timer?
+    private let cryptoLabel = CurrenciesViewController.makeFilterLabel(
+        text: "Crypto",
+        backgroundColor: .lightGray
+    )
     
     private let exchangeRateStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .vertical
-        stackView.spacing = 3
+        stackView.spacing = Constants.exchangeRateStackSpacing
         return stackView
     }()
     
@@ -93,7 +66,7 @@ final class CurrenciesViewController: UIViewController {
         let label = UILabel()
         label.text = "Rate left to right:"
         label.textAlignment = .center
-        label.font = .systemFont(ofSize: 10)
+        label.font = .systemFont(ofSize: Constants.smallFontSize)
         return label
     }()
     
@@ -101,20 +74,36 @@ final class CurrenciesViewController: UIViewController {
         let label = UILabel()
         label.text = "Update in: 5"
         label.textAlignment = .center
-        label.font = .systemFont(ofSize: 10)
+        label.font = .systemFont(ofSize: Constants.smallFontSize)
         return label
     }()
     
-    private var ticks = 0
+    // MARK: - Dependencies
+    private let dataProvider = CurrenciesDataProvider()
     
+    // MARK: - State
+    private var activeFilter: FilterType = .all
+    
+    private var isLeftCurrencyLabelBlinking = false
+    private var leftCurrencyLabelTimer: Timer?
+    private var selectedLeftCurrencyLabel: String?
+    
+    private var isRightCurrencyLabelBlinking = false
+    private var rightCurrencyLabelTimer: Timer?
+    private var selectedRightCurrencyLabel: String?
+    
+    private var exchangeRateTimer: Timer?
+    private var updateCountdown = 0
+    
+    // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        setupUI()
-        addSubview()
+        setupCollectionView()
+        setupHierarchy()
         setupConstraints()
-        setupLabelsTaps()
-        setupExchangeRateStackView()
+        setupCurrencyLabelGestures()
+        setupFilterLabelGestures()
         startExchangeRateTimer()
     }
     
@@ -123,25 +112,29 @@ final class CurrenciesViewController: UIViewController {
     }
 }
 
-// MARK: - Private Methods
+// MARK: - Setup
 private extension CurrenciesViewController {
-    func setupUI() {
+    func setupCollectionView() {
         collectionView.dataSource = dataProvider
-        dataProvider.delegate = self
         collectionView.delegate = dataProvider
-        collectionView.register(CollectionViewCell.self, forCellWithReuseIdentifier: CollectionViewCell.identifier)
+        collectionView.register(
+            CollectionViewCell.self,
+            forCellWithReuseIdentifier: CollectionViewCell.identifier
+        )
+        
+        dataProvider.delegate = self
     }
     
-    func addSubview() {
+    func setupHierarchy() {
         view.addSubview(collectionView)
         view.addSubview(leftCurrencyLabel)
         view.addSubview(rightCurrencyLabel)
-        view.addSubview(stackView)
+        view.addSubview(filterStackView)
         view.addSubview(exchangeRateStackView)
         
-        stackView.addArrangedSubview(allLabel)
-        stackView.addArrangedSubview(fiatLabel)
-        stackView.addArrangedSubview(cryptoLabel)
+        filterStackView.addArrangedSubview(allLabel)
+        filterStackView.addArrangedSubview(fiatLabel)
+        filterStackView.addArrangedSubview(cryptoLabel)
         
         exchangeRateStackView.addArrangedSubview(exchangeRateLabel)
         exchangeRateStackView.addArrangedSubview(timerLabel)
@@ -151,7 +144,7 @@ private extension CurrenciesViewController {
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         leftCurrencyLabel.translatesAutoresizingMaskIntoConstraints = false
         rightCurrencyLabel.translatesAutoresizingMaskIntoConstraints = false
-        stackView.translatesAutoresizingMaskIntoConstraints = false
+        filterStackView.translatesAutoresizingMaskIntoConstraints = false
         exchangeRateStackView.translatesAutoresizingMaskIntoConstraints = false
         exchangeRateLabel.translatesAutoresizingMaskIntoConstraints = false
         
@@ -159,67 +152,116 @@ private extension CurrenciesViewController {
             leftCurrencyLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             leftCurrencyLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             leftCurrencyLabel.trailingAnchor.constraint(equalTo: view.centerXAnchor),
-            leftCurrencyLabel.heightAnchor.constraint(equalToConstant: 80),
+            leftCurrencyLabel.heightAnchor.constraint(equalToConstant: Constants.currencyLabelHeight),
             
             rightCurrencyLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            rightCurrencyLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             rightCurrencyLabel.leadingAnchor.constraint(equalTo: view.centerXAnchor),
-            rightCurrencyLabel.heightAnchor.constraint(equalToConstant: 80),
+            rightCurrencyLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            rightCurrencyLabel.heightAnchor.constraint(equalToConstant: Constants.currencyLabelHeight),
             
-            stackView.topAnchor.constraint(equalTo: rightCurrencyLabel.bottomAnchor, constant: 10),
-            stackView.bottomAnchor.constraint(equalTo: collectionView.topAnchor, constant: -10),
-            stackView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            stackView.trailingAnchor.constraint(equalTo: view.centerXAnchor),
+            filterStackView.topAnchor.constraint(
+                equalTo: rightCurrencyLabel.bottomAnchor,
+                constant: Constants.topSpacing
+            ),
+            filterStackView.bottomAnchor.constraint(
+                equalTo: collectionView.topAnchor,
+                constant: -Constants.topSpacing
+            ),
+            filterStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            filterStackView.trailingAnchor.constraint(equalTo: view.centerXAnchor),
             
-            exchangeRateStackView.topAnchor.constraint(equalTo: rightCurrencyLabel.bottomAnchor, constant: 10),
-            exchangeRateStackView.bottomAnchor.constraint(equalTo: collectionView.topAnchor, constant: -10),
+            exchangeRateStackView.topAnchor.constraint(
+                equalTo: rightCurrencyLabel.bottomAnchor,
+                constant: Constants.topSpacing
+            ),
+            exchangeRateStackView.bottomAnchor.constraint(
+                equalTo: collectionView.topAnchor,
+                constant: -Constants.topSpacing
+            ),
             exchangeRateStackView.leadingAnchor.constraint(equalTo: view.centerXAnchor),
             exchangeRateStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             
-            collectionView.topAnchor.constraint(equalTo: stackView.bottomAnchor, constant: 20),
+            collectionView.topAnchor.constraint(
+                equalTo: filterStackView.bottomAnchor,
+                constant: Constants.collectionTopSpacing
+            ),
             collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8)
+            collectionView.leadingAnchor.constraint(
+                equalTo: view.leadingAnchor,
+                constant: Constants.collectionHorizontalInset
+            ),
+            collectionView.trailingAnchor.constraint(
+                equalTo: view.trailingAnchor,
+                constant: -Constants.collectionHorizontalInset
+            )
         ])
     }
     
-    func setupLabelsTaps() {
-        let leftCurrencyLabelTapGesture = UITapGestureRecognizer(target: self, action: #selector(leftCurrencyLabelTapped))
-        leftCurrencyLabel.addGestureRecognizer(leftCurrencyLabelTapGesture)
+    func setupCurrencyLabelGestures() {
+        let leftTapGesture = UITapGestureRecognizer(
+            target: self,
+            action: #selector(leftCurrencyLabelTapped)
+        )
+        leftCurrencyLabel.addGestureRecognizer(leftTapGesture)
         
-        let rightCurrencyLabelTapGesture = UITapGestureRecognizer(target: self, action: #selector(rightCurrencyLabelTapped))
-        rightCurrencyLabel.addGestureRecognizer(rightCurrencyLabelTapGesture)
-        
-        let allLabelTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTypeLabelTapped(_:)))
-        allLabel.addGestureRecognizer(allLabelTapGesture)
-        
-        let fiatLabelTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTypeLabelTapped(_:)))
-        fiatLabel.addGestureRecognizer(fiatLabelTapGesture)
-        
-        let cryptoLabelTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTypeLabelTapped(_:)))
-        cryptoLabel.addGestureRecognizer(cryptoLabelTapGesture)
+        let rightTapGesture = UITapGestureRecognizer(
+            target: self,
+            action: #selector(rightCurrencyLabelTapped)
+        )
+        rightCurrencyLabel.addGestureRecognizer(rightTapGesture)
     }
     
+    func setupFilterLabelGestures() {
+        let allTapGesture = UITapGestureRecognizer(
+            target: self,
+            action: #selector(handleFilterLabelTapped(_:))
+        )
+        allLabel.addGestureRecognizer(allTapGesture)
+        
+        let fiatTapGesture = UITapGestureRecognizer(
+            target: self,
+            action: #selector(handleFilterLabelTapped(_:))
+        )
+        fiatLabel.addGestureRecognizer(fiatTapGesture)
+        
+        let cryptoTapGesture = UITapGestureRecognizer(
+            target: self,
+            action: #selector(handleFilterLabelTapped(_:))
+        )
+        cryptoLabel.addGestureRecognizer(cryptoTapGesture)
+    }
+}
+
+// MARK: - Currency Selection
+private extension CurrenciesViewController {
     @objc func leftCurrencyLabelTapped() {
-        if leftCurrencyLabelIsBlinking || rightCurrencyLabelIsBlinking {
-            return
-        }
+        guard !isLeftCurrencyLabelBlinking, !isRightCurrencyLabelBlinking else { return }
+        
         dataProvider.activeSide = .left
-        leftCurrencyLabelStartBlinking()
-        leftCurrencyLabelIsSet = true
+        startLeftCurrencyLabelBlinking()
         collectionView.reloadData()
     }
     
-    func leftCurrencyLabelStartBlinking() {
+    @objc func rightCurrencyLabelTapped() {
+        guard !isRightCurrencyLabelBlinking, !isLeftCurrencyLabelBlinking else { return }
+        
+        dataProvider.activeSide = .right
+        startRightCurrencyLabelBlinking()
+        collectionView.reloadData()
+    }
+    
+    func startLeftCurrencyLabelBlinking() {
         leftCurrencyLabel.text = "Choose Currency"
         leftCurrencyLabel.backgroundColor = .red
-        leftCurrencyLabelIsBlinking = true
+        isLeftCurrencyLabelBlinking = true
+        
         var isRedCurrencyLabel = leftCurrencyLabel.backgroundColor == .red
         
         leftCurrencyLabelTimer?.invalidate()
-        
-        leftCurrencyLabelTimer = Timer.scheduledTimer(withTimeInterval: 0.35, repeats: true) {
-            [weak self] _ in
+        leftCurrencyLabelTimer = Timer.scheduledTimer(
+            withTimeInterval: Constants.blinkingInterval,
+            repeats: true
+        ) { [weak self] _ in
             guard let self else { return }
             
             if isRedCurrencyLabel {
@@ -232,61 +274,58 @@ private extension CurrenciesViewController {
         }
     }
     
-    func leftCurrencyLabelStopBlinking(_ currency: CurrencyCell) {
+    func stopLeftCurrencyLabelBlinking(with currency: CurrencyCell) {
         leftCurrencyLabelTimer?.invalidate()
         leftCurrencyLabelTimer = nil
-        leftCurrencyLabelIsBlinking = false
+        
+        isLeftCurrencyLabelBlinking = false
         leftCurrencyLabel.backgroundColor = .orange
         leftCurrencyLabel.text = currency.label
-        leftCurrencyLabelChosen = currency.label
+        selectedLeftCurrencyLabel = currency.label
         
         dataProvider.activeSide = .none
     }
     
-    @objc func rightCurrencyLabelTapped() {
-        if rightCurrencyLabelIsBlinking || leftCurrencyLabelIsBlinking {
-            return
-        }
-        dataProvider.activeSide = .right
-        rightCurrencyLabelStartBlinking()
-        rightCurrencyLabelIsSet = true
-        collectionView.reloadData()
-    }
-    
-    func rightCurrencyLabelStartBlinking() {
+    func startRightCurrencyLabelBlinking() {
         rightCurrencyLabel.text = "Choose Currency"
         rightCurrencyLabel.backgroundColor = .red
-        rightCurrencyLabelIsBlinking = true
+        isRightCurrencyLabelBlinking = true
+        
         var isRedCurrencyLabel = rightCurrencyLabel.backgroundColor == .red
         
         rightCurrencyLabelTimer?.invalidate()
-        
-        rightCurrencyLabelTimer = Timer.scheduledTimer(withTimeInterval: 0.35, repeats: true) {
-            [weak self] _ in
+        rightCurrencyLabelTimer = Timer.scheduledTimer(
+            withTimeInterval: Constants.blinkingInterval,
+            repeats: true
+        ) { [weak self] _ in
             guard let self else { return }
             
             if isRedCurrencyLabel {
-                rightCurrencyLabel.backgroundColor = .blue
+                self.rightCurrencyLabel.backgroundColor = .blue
             } else {
-                rightCurrencyLabel.backgroundColor = .red
+                self.rightCurrencyLabel.backgroundColor = .red
             }
             
             isRedCurrencyLabel.toggle()
         }
     }
     
-    func rightCurrencyLabelStopBlinking(_ currency: CurrencyCell) {
+    func stopRightCurrencyLabelBlinking(with currency: CurrencyCell) {
         rightCurrencyLabelTimer?.invalidate()
         rightCurrencyLabelTimer = nil
-        rightCurrencyLabelIsBlinking = false
+        
+        isRightCurrencyLabelBlinking = false
         rightCurrencyLabel.backgroundColor = .orange
         rightCurrencyLabel.text = currency.label
-        rightCurrencyLabelChosen = currency.label
+        selectedRightCurrencyLabel = currency.label
         
         dataProvider.activeSide = .none
     }
-    
-    @objc func handleTypeLabelTapped(_ gesture: UITapGestureRecognizer) {
+}
+
+// MARK: - Filter Handling
+private extension CurrenciesViewController {
+    @objc func handleFilterLabelTapped(_ gesture: UITapGestureRecognizer) {
         guard let tappedLabel = gesture.view as? UILabel else { return }
         
         if tappedLabel == allLabel {
@@ -297,74 +336,102 @@ private extension CurrenciesViewController {
             activeFilter = .crypto
         }
         
-        handleTypeLabelColor()
+        updateFilterUIAndApplyFilter()
     }
     
-    func handleTypeLabelColor() {
+    func updateFilterUIAndApplyFilter() {
         switch activeFilter {
         case .all:
             allLabel.backgroundColor = .green
             fiatLabel.backgroundColor = .lightGray
             cryptoLabel.backgroundColor = .lightGray
-            
             dataProvider.applyFilter(.all)
+            
         case .fiat:
             allLabel.backgroundColor = .lightGray
             fiatLabel.backgroundColor = .green
             cryptoLabel.backgroundColor = .lightGray
-            
             dataProvider.applyFilter(.fiat)
+            
         case .crypto:
             allLabel.backgroundColor = .lightGray
             fiatLabel.backgroundColor = .lightGray
             cryptoLabel.backgroundColor = .green
-            
             dataProvider.applyFilter(.crypto)
         }
         
         collectionView.reloadData()
     }
-    
-    func setupExchangeRateStackView() {
-        
-    }
-    
+}
+
+// MARK: - Exchange Rate Timer
+private extension CurrenciesViewController {
     func startExchangeRateTimer() {
-        exchangeRateTimer = Timer.scheduledTimer(timeInterval: 1.0,
-                                                 target: self,
-                                                 selector: #selector(exchangeRateTimerTick),
-                                                 userInfo: nil,
-                                                 repeats: true)
+        exchangeRateTimer = Timer.scheduledTimer(
+            timeInterval: Constants.exchangeRateTimerInterval,
+            target: self,
+            selector: #selector(exchangeRateTimerTick),
+            userInfo: nil,
+            repeats: true
+        )
     }
     
     @objc func exchangeRateTimerTick() {
-        ticks += 1
-        timerLabel.text = "Update in: \(5 - ticks)"
+        updateCountdown += 1
+        timerLabel.text = "Update in: \(Constants.exchangeRateRefreshPeriod - updateCountdown)"
         
-        if ticks == 5 {
+        if updateCountdown == Constants.exchangeRateRefreshPeriod {
             dataProvider.updateBaseValues()
             collectionView.reloadData()
             
-            if let leftLabel = leftCurrencyLabelChosen,
-               let rightLabel = rightCurrencyLabelChosen,
-               let leftCurrencyCell = dataProvider.getCurrencyBy(label: leftLabel),
-               let rightCurrencyCell = dataProvider.getCurrencyBy(label: rightLabel) {
-                exchangeRateLabel.text = "Rate \(leftLabel) to \(rightLabel): \(dataProvider.exchangeRateBetween(leftCurrencyCell, rightCurrencyCell))"
+            if let leftLabel = selectedLeftCurrencyLabel,
+               let rightLabel = selectedRightCurrencyLabel,
+               let leftCurrencyCell = dataProvider.currency(withLabel: leftLabel),
+               let rightCurrencyCell = dataProvider.currency(withLabel: rightLabel) {
+                exchangeRateLabel.text = """
+                Rate \(leftLabel) to \(rightLabel): \
+                \(dataProvider.exchangeRateBetween(leftCurrencyCell, rightCurrencyCell))
+                """
             }
             
-            ticks = 0
-            timerLabel.text = "Update in: 5"
+            updateCountdown = 0
+            timerLabel.text = "Update in: \(Constants.exchangeRateRefreshPeriod)"
         }
     }
 }
 
-extension CurrenciesViewController: CurrencyDelegate {    
+// MARK: - Factory Methods
+private extension CurrenciesViewController {
+    static func makeCurrencyLabel() -> UILabel {
+        let label = UILabel()
+        label.text = ""
+        label.backgroundColor = .orange
+        label.textAlignment = .center
+        label.isUserInteractionEnabled = true
+        label.layer.borderWidth = Constants.borderWidth
+        label.layer.borderColor = UIColor.black.cgColor
+        label.layer.cornerRadius = Constants.cornerRadius
+        label.clipsToBounds = true
+        return label
+    }
+    
+    static func makeFilterLabel(text: String, backgroundColor: UIColor) -> UILabel {
+        let label = UILabel()
+        label.text = text
+        label.backgroundColor = backgroundColor
+        label.textAlignment = .center
+        label.isUserInteractionEnabled = true
+        return label
+    }
+}
+
+// MARK: - CurrencyDelegate
+extension CurrenciesViewController: CurrencyDelegate {
     func currencySelected(_ currency: CurrencyCell) {
-        if leftCurrencyLabelIsBlinking {
-            leftCurrencyLabelStopBlinking(currency)
-        }
-        if rightCurrencyLabelIsBlinking {
-            rightCurrencyLabelStopBlinking(currency)
+        if isLeftCurrencyLabelBlinking {
+            stopLeftCurrencyLabelBlinking(with: currency)
+        } else if isRightCurrencyLabelBlinking {
+            stopRightCurrencyLabelBlinking(with: currency)
         }
     }
 }
