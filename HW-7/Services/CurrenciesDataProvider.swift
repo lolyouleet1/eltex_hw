@@ -10,41 +10,63 @@ final class CurrenciesDataProvider: NSObject {
     private var currencies = [CurrencyCell]()
     var delegate: CurrencyDelegate?
     var activeSide: SelectedSide = .none
+    var filteredCurrencies = [CurrencyCell]()
     
     override init() {
         super.init()
         getRandomCurrencies()
+        applyFilter(.all)
+    }
+    
+    func applyFilter(_ filter: FilterType) {
+        switch filter {
+        case .all:
+            filteredCurrencies = currencies
+        case .fiat:
+            filteredCurrencies = currencies.filter {
+                $0.type == .fiat
+            }
+        case .crypto:
+            filteredCurrencies = currencies.filter {
+                $0.type == .crypto
+            }
+        }
     }
 }
 
 private extension CurrenciesDataProvider {
     func getRandomCurrencies() {
+        var isFiat = true
         for first in alphabet {
             for second in alphabet {
                 for third in alphabet {
                     let currency = String(first) + String(second) + String(third)
                     let exchangeRate = (Float.random(in: 0...1000) * 100).rounded() / 100
-                    currencies.append(CurrencyCell(label: currency,
-                                                   colorIfNotSelected: .green,
-                                                   colorIfSelected: .gray,
-                                                   selectedSide: .none,
-                                                  exchangeRate: exchangeRate))
+                    if isFiat {
+                        currencies.append(CurrencyCell(label: currency,
+                                                       colorIfNotSelected: .green,
+                                                       colorIfSelected: .gray,
+                                                       selectedSide: .none,
+                                                      exchangeRate: exchangeRate,
+                                                       type: .fiat))
+                    } else {
+                        currencies.append(CurrencyCell(label: currency,
+                                                       colorIfNotSelected: .green,
+                                                       colorIfSelected: .gray,
+                                                       selectedSide: .none,
+                                                      exchangeRate: exchangeRate,
+                                                       type: .crypto))
+                    }
+                    isFiat.toggle()
                 }
             }
         }
     }
-    
-//    func handleCellState(at index: Int, in collectionView: UICollectionView) {
-//        currencies[index].isSelected.toggle()
-//        
-//        let indexPath = IndexPath(item: index, section: 0)
-//        collectionView.reloadItems(at: [indexPath])
-//    }
 }
 
 extension CurrenciesDataProvider: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return currencies.count
+        return filteredCurrencies.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -52,7 +74,7 @@ extension CurrenciesDataProvider: UICollectionViewDataSource {
             return UICollectionViewCell()
         }
         
-        let currency = currencies[indexPath.item]
+        let currency = filteredCurrencies[indexPath.item]
         cell.configure(currency)
         
         return cell

@@ -1,6 +1,12 @@
 import UIKit
 import Foundation
 
+enum FilterType {
+    case all
+    case fiat
+    case crypto
+}
+
 final class CurrenciesViewController: UIViewController {
     private let collectionView = UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
     private let dataProvider = CurrenciesDataProvider()
@@ -27,6 +33,42 @@ final class CurrenciesViewController: UIViewController {
     private var rightCurrencyLabelIsBlinking = false
     private var rightCurrencyLabelTimer: Timer?
     
+    private let stackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.spacing = 8
+        return stackView
+    }()
+    
+    private let allLabel: UILabel = {
+        let label = UILabel()
+        label.text = "All"
+        label.backgroundColor = .green
+        label.textAlignment = .center
+        label.isUserInteractionEnabled = true
+        return label
+    }()
+    
+    private let fiatLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Fiat"
+        label.backgroundColor = .lightGray
+        label.textAlignment = .center
+        label.isUserInteractionEnabled = true
+        return label
+    }()
+    
+    private let cryptoLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Crypto"
+        label.backgroundColor = .lightGray
+        label.textAlignment = .center
+        label.isUserInteractionEnabled = true
+        return label
+    }()
+
+    var activeFilter: FilterType = .all
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -50,12 +92,18 @@ private extension CurrenciesViewController {
         view.addSubview(collectionView)
         view.addSubview(leftCurrencyLabel)
         view.addSubview(rightCurrencyLabel)
+        view.addSubview(stackView)
+        
+        stackView.addArrangedSubview(allLabel)
+        stackView.addArrangedSubview(fiatLabel)
+        stackView.addArrangedSubview(cryptoLabel)
     }
     
     func setupConstraints() {
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         leftCurrencyLabel.translatesAutoresizingMaskIntoConstraints = false
         rightCurrencyLabel.translatesAutoresizingMaskIntoConstraints = false
+        stackView.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
             leftCurrencyLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -68,7 +116,12 @@ private extension CurrenciesViewController {
             rightCurrencyLabel.leadingAnchor.constraint(equalTo: view.centerXAnchor),
             rightCurrencyLabel.heightAnchor.constraint(equalToConstant: 80),
             
-            collectionView.topAnchor.constraint(equalTo: rightCurrencyLabel.bottomAnchor, constant: 20),
+            stackView.topAnchor.constraint(equalTo: rightCurrencyLabel.bottomAnchor, constant: 10),
+            stackView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+//            stackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: 280),
+            stackView.widthAnchor.constraint(equalToConstant: 160),
+            
+            collectionView.topAnchor.constraint(equalTo: stackView.bottomAnchor, constant: 20),
             collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8)
@@ -78,9 +131,18 @@ private extension CurrenciesViewController {
     func setupLabelsTaps() {
         let leftCurrencyLabelTapGesture = UITapGestureRecognizer(target: self, action: #selector(leftCurrencyLabelTapped))
         leftCurrencyLabel.addGestureRecognizer(leftCurrencyLabelTapGesture)
-        
+
         let rightCurrencyLabelTapGesture = UITapGestureRecognizer(target: self, action: #selector(rightCurrencyLabelTapped))
         rightCurrencyLabel.addGestureRecognizer(rightCurrencyLabelTapGesture)
+        
+        let allLabelTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTypeLabelTapped(_:)))
+        allLabel.addGestureRecognizer(allLabelTapGesture)
+        
+        let fiatLabelTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTypeLabelTapped(_:)))
+        fiatLabel.addGestureRecognizer(fiatLabelTapGesture)
+        
+        let cryptoLabelTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTypeLabelTapped(_:)))
+        cryptoLabel.addGestureRecognizer(cryptoLabelTapGesture)
     }
     
     @objc func leftCurrencyLabelTapped() {
@@ -161,6 +223,44 @@ private extension CurrenciesViewController {
         rightCurrencyLabel.text = currency.label
         
         dataProvider.activeSide = .none
+    }
+    
+    @objc func handleTypeLabelTapped(_ gesture: UITapGestureRecognizer) {
+        guard let tappedLabel = gesture.view as? UILabel else { return }
+
+        if tappedLabel == allLabel {
+            activeFilter = .all
+        } else if tappedLabel == fiatLabel {
+            activeFilter = .fiat
+        } else if tappedLabel == cryptoLabel {
+            activeFilter = .crypto
+        }
+        
+        handleTypeLabelColor()
+    }
+    
+    func handleTypeLabelColor() {
+        switch activeFilter {
+        case .all:
+            allLabel.backgroundColor = .green
+            fiatLabel.backgroundColor = .lightGray
+            cryptoLabel.backgroundColor = .lightGray
+            
+            dataProvider.applyFilter(.all)
+        case .fiat:
+            allLabel.backgroundColor = .lightGray
+            fiatLabel.backgroundColor = .green
+            cryptoLabel.backgroundColor = .lightGray
+            
+            dataProvider.applyFilter(.fiat)
+        case .crypto:
+            allLabel.backgroundColor = .lightGray
+            fiatLabel.backgroundColor = .lightGray
+            cryptoLabel.backgroundColor = .green
+            
+            dataProvider.applyFilter(.crypto)
+        }
+        collectionView.reloadData()
     }
 }
 
