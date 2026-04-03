@@ -1,19 +1,5 @@
 import UIKit
 
-struct CurrencyCell {
-    let label: String
-    let colorIfNotSelected: UIColor
-    let colorIfSelected: UIColor
-    var selectedSide: SelectedSide
-    var exchangeRate: Float
-    let type: CurrencyType
-}
-
-enum CurrencyType {
-    case fiat
-    case crypto
-}
-
 enum SelectedSide {
     case none
     case left
