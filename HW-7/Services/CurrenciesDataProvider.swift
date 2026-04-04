@@ -49,23 +49,29 @@ final class CurrenciesDataProvider: NSObject {
     override init() {
         super.init()
         generateCurrencies()
-        applyFilter(.all)
+        applyFilters(typeFilter: .all, favoritesOnly: false)
     }
     
     // MARK: - Public Methods
-    func applyFilter(_ filter: FilterType) {
-        currentFilter = filter
+    func applyFilters(typeFilter: FilterType, favoritesOnly: Bool) {
+        currentFilter = typeFilter
         
-        switch filter {
+        var result = currencies
+        
+        switch typeFilter {
         case .all:
-            filteredCurrencies = currencies
+            break
         case .fiat:
-            filteredCurrencies = currencies.filter { $0.type == .fiat }
+            result = result.filter { $0.type == .fiat }
         case .crypto:
-            filteredCurrencies = currencies.filter { $0.type == .crypto }
-        case .favorite:
-            filteredCurrencies = currencies.filter{ $0.isFavorite == true }
+            result = result.filter { $0.type == .crypto }
         }
+        
+        if favoritesOnly {
+            result = result.filter { $0.isFavorite }
+        }
+        
+        filteredCurrencies = result
     }
     
     func exchangeRateBetween(_ left: CurrencyCell, _ right: CurrencyCell) -> Float {
@@ -76,8 +82,6 @@ final class CurrenciesDataProvider: NSObject {
         for index in currencies.indices {
             currencies[index].baseValue = makeRandomBaseValue()
         }
-        
-        applyFilter(currentFilter)
     }
     
     func currency(withLabel label: String) -> CurrencyCell? {
@@ -92,7 +96,6 @@ final class CurrenciesDataProvider: NSObject {
         }
         
         currencies[realIndex].isFavorite.toggle()
-        applyFilter(currentFilter)
     }
 }
 
@@ -196,7 +199,7 @@ extension CurrenciesDataProvider: UICollectionViewDelegate {
         clearPreviousSelectionIfNeeded()
         currencies[selectedIndex].selectedSide = activeSide
         
-        applyFilter(currentFilter)
+        applyFilters(typeFilter: currentFilter, favoritesOnly: false)
         collectionView.reloadData()
         
         delegate?.currencySelected(currencies[selectedIndex])

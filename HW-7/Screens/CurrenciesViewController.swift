@@ -4,7 +4,6 @@ enum FilterType {
     case all
     case fiat
     case crypto
-    case favorite
 }
 
 final class CurrenciesViewController: UIViewController {
@@ -56,10 +55,6 @@ final class CurrenciesViewController: UIViewController {
         backgroundColor: .lightGray
     )
     
-    private let favoriteLabel = CurrenciesViewController.makeFilterLabel(
-        text: "Favorite",
-        backgroundColor: .lightGray)
-    
     private let exchangeRateStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .vertical
@@ -83,6 +78,8 @@ final class CurrenciesViewController: UIViewController {
         return label
     }()
     
+    private let favoritesFilterView = FavoritesFilterView()
+    
     // MARK: - Dependencies
     private let dataProvider = CurrenciesDataProvider()
     
@@ -99,6 +96,8 @@ final class CurrenciesViewController: UIViewController {
     
     private var exchangeRateTimer: Timer?
     private var updateCountdown = 0
+    
+    private var isFavoritesOnlyEnabled = false
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
@@ -129,19 +128,20 @@ private extension CurrenciesViewController {
         
         dataProvider.delegate = self
         dataProvider.cellDelegate = self
+        favoritesFilterView.delegate = self
     }
     
     func setupHierarchy() {
-        view.addSubview(collectionView)
         view.addSubview(leftCurrencyLabel)
         view.addSubview(rightCurrencyLabel)
+        view.addSubview(favoritesFilterView)
+        view.addSubview(collectionView)
         view.addSubview(filterStackView)
         view.addSubview(exchangeRateStackView)
         
         filterStackView.addArrangedSubview(allLabel)
         filterStackView.addArrangedSubview(fiatLabel)
         filterStackView.addArrangedSubview(cryptoLabel)
-        filterStackView.addArrangedSubview(favoriteLabel)
         
         exchangeRateStackView.addArrangedSubview(exchangeRateLabel)
         exchangeRateStackView.addArrangedSubview(timerLabel)
@@ -154,6 +154,7 @@ private extension CurrenciesViewController {
         filterStackView.translatesAutoresizingMaskIntoConstraints = false
         exchangeRateStackView.translatesAutoresizingMaskIntoConstraints = false
         exchangeRateLabel.translatesAutoresizingMaskIntoConstraints = false
+        favoritesFilterView.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
             leftCurrencyLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -166,19 +167,16 @@ private extension CurrenciesViewController {
             rightCurrencyLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             rightCurrencyLabel.heightAnchor.constraint(equalToConstant: Constants.currencyLabelHeight),
             
-            filterStackView.topAnchor.constraint(
-                equalTo: rightCurrencyLabel.bottomAnchor,
-                constant: Constants.topSpacing
-            ),
-            filterStackView.bottomAnchor.constraint(
-                equalTo: collectionView.topAnchor,
-                constant: -Constants.topSpacing
-            ),
+            favoritesFilterView.topAnchor.constraint(equalTo: rightCurrencyLabel.bottomAnchor, constant: Constants.topSpacing),
+            favoritesFilterView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: Constants.collectionHorizontalInset),
+            favoritesFilterView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -Constants.collectionHorizontalInset),
+
+            filterStackView.topAnchor.constraint(equalTo: favoritesFilterView.bottomAnchor, constant: Constants.topSpacing),
             filterStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             filterStackView.trailingAnchor.constraint(equalTo: view.centerXAnchor),
             
             exchangeRateStackView.topAnchor.constraint(
-                equalTo: rightCurrencyLabel.bottomAnchor,
+                equalTo: favoritesFilterView.bottomAnchor,
                 constant: Constants.topSpacing
             ),
             exchangeRateStackView.bottomAnchor.constraint(
@@ -236,12 +234,6 @@ private extension CurrenciesViewController {
             action: #selector(handleFilterLabelTapped(_:))
         )
         cryptoLabel.addGestureRecognizer(cryptoTapGesture)
-        
-        let favoriteTapGesture = UITapGestureRecognizer(
-            target: self,
-            action: #selector(handleFilterLabelTapped(_:))
-        )
-        favoriteLabel.addGestureRecognizer(favoriteTapGesture)
     }
 }
 
@@ -347,46 +339,10 @@ private extension CurrenciesViewController {
             activeFilter = .fiat
         } else if tappedLabel == cryptoLabel {
             activeFilter = .crypto
-        } else if tappedLabel == favoriteLabel {
-            activeFilter = .favorite
         }
         
-        updateFilterUIAndApplyFilter()
-    }
-    
-    func updateFilterUIAndApplyFilter() {
-        switch activeFilter {
-        case .all:
-            allLabel.backgroundColor = .green
-            fiatLabel.backgroundColor = .lightGray
-            cryptoLabel.backgroundColor = .lightGray
-            favoriteLabel.backgroundColor = .lightGray
-            dataProvider.applyFilter(.all)
-    
-        case .fiat:
-            allLabel.backgroundColor = .lightGray
-            fiatLabel.backgroundColor = .green
-            cryptoLabel.backgroundColor = .lightGray
-            favoriteLabel.backgroundColor = .lightGray
-            dataProvider.applyFilter(.fiat)
-            
-        case .crypto:
-            allLabel.backgroundColor = .lightGray
-            fiatLabel.backgroundColor = .lightGray
-            cryptoLabel.backgroundColor = .green
-            favoriteLabel.backgroundColor = .lightGray
-            dataProvider.applyFilter(.crypto)
-            
-        case .favorite:
-            allLabel.backgroundColor = .lightGray
-            fiatLabel.backgroundColor = .lightGray
-            cryptoLabel.backgroundColor = .lightGray
-            favoriteLabel.backgroundColor = .green
-            dataProvider.applyFilter(.favorite)
-        }
-        
-        refreshCollectionViewState()
-        collectionView.reloadData()
+        updateTypeFilterUI()
+        applyCurrentFilters()
     }
     
     func updateEmptyState(message: String?) {
@@ -403,14 +359,36 @@ private extension CurrenciesViewController {
         }
     }
     
-    func refreshCollectionViewState() {
-        if activeFilter == .favorite && dataProvider.isFilteredCurrenciesEmpty {
+    func applyCurrentFilters() {
+        dataProvider.applyFilters(
+            typeFilter: activeFilter,
+            favoritesOnly: isFavoritesOnlyEnabled
+        )
+        
+        if isFavoritesOnlyEnabled && dataProvider.isFilteredCurrenciesEmpty {
             updateEmptyState(message: "No favorite currencies")
         } else {
             updateEmptyState(message: nil)
         }
         
         collectionView.reloadData()
+    }
+    
+    func updateTypeFilterUI() {
+        switch activeFilter {
+        case .all:
+            allLabel.backgroundColor = .green
+            fiatLabel.backgroundColor = .lightGray
+            cryptoLabel.backgroundColor = .lightGray
+        case .fiat:
+            allLabel.backgroundColor = .lightGray
+            fiatLabel.backgroundColor = .green
+            cryptoLabel.backgroundColor = .lightGray
+        case .crypto:
+            allLabel.backgroundColor = .lightGray
+            fiatLabel.backgroundColor = .lightGray
+            cryptoLabel.backgroundColor = .green
+        }
     }
 }
 
@@ -432,7 +410,7 @@ private extension CurrenciesViewController {
         
         if updateCountdown == Constants.exchangeRateRefreshPeriod {
             dataProvider.updateBaseValues()
-            collectionView.reloadData()
+            applyCurrentFilters()
             
             if let leftLabel = selectedLeftCurrencyLabel,
                let rightLabel = selectedRightCurrencyLabel,
@@ -483,6 +461,8 @@ extension CurrenciesViewController: CurrencyDelegate {
         } else if isRightCurrencyLabelBlinking {
             stopRightCurrencyLabelBlinking(with: currency)
         }
+        
+        applyCurrentFilters()
     }
 }
 
@@ -492,8 +472,13 @@ extension CurrenciesViewController: CollectionViewCellDelegate {
         guard let indexPath = collectionView.indexPath(for: cell) else { return }
         
         dataProvider.toggleFavorite(at: indexPath.item)
-        
-        refreshCollectionViewState()
-        collectionView.reloadData()
+        applyCurrentFilters()
+    }
+}
+
+extension CurrenciesViewController: FavoritesFilterViewDelegate {
+    func favoritesFilterDidChange(isOn: Bool) {
+        isFavoritesOnlyEnabled = isOn
+        applyCurrentFilters()
     }
 }
