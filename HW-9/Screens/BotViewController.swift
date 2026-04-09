@@ -46,6 +46,7 @@ final class BotViewController: UIViewController {
         setupNoDataLabel()
         setupActions()
         setupConstraints()
+        setBarItems()
     }
 }
 
@@ -277,6 +278,49 @@ private extension BotViewController {
             tableView.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -Constants.tableHorizontalInset),
             tableView.bottomAnchor.constraint(equalTo: stackView.topAnchor, constant: -Constants.sectionSpacing)
         ])
+    }
+}
+
+// MARK: - Navigation Bar
+private extension BotViewController {
+    func setBarItems() {
+        title = "Bot"
+        
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            image: UIImage(systemName: "trash"),
+            style: .plain,
+            target: self,
+            action: #selector(handleLeftBarButtonItem)
+        )
+        
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            image: UIImage(systemName: "bitcoinsign.bank.building"),
+            style: .plain,
+            target: self,
+            action: #selector(handleRightBarButtonItem)
+        )
+    }
+    
+    @objc func handleLeftBarButtonItem() {
+        stock.clearFinalResult(balance: Constants.startBalance)
+                
+        balanceLabel.text = "Balance: \(Constants.startBalance)"
+        profitLabel.text = "Profit: \(0)"
+        
+        noDataLabel.isHidden = false
+        tableView.isHidden = true
+        
+        balanceLabel.backgroundColor = .gray
+        profitLabel.backgroundColor = .gray
+    }
+    
+    @objc func handleRightBarButtonItem() {
+        dataProvider.clearSelectionBySide(side: .left)
+        dataProvider.clearSelectionBySide(side: .right)
+        let randomCurrencies = dataProvider.getTwoRandomCurrencies()
+        
+        leftCurrencyLabel.text = randomCurrencies[0].label
+        rightCurrencyLabel.text = randomCurrencies[1].label
     }
 }
 

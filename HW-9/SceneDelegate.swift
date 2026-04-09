@@ -19,7 +19,6 @@ private extension SceneDelegate {
         
         let botViewController = BotViewController()
         botViewController.tabBarItem = UITabBarItem(title: "Bot", image: UIImage(systemName: "circle"), tag: 0)
-        botViewController.title = "Bot"
         
         let navigationController = UINavigationController(rootViewController: botViewController)
         

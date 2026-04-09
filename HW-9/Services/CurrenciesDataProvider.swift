@@ -85,6 +85,34 @@ final class CurrenciesDataProvider: NSObject {
         
         currencies[realIndex].isFavorite.toggle()
     }
+    
+    func getTwoRandomCurrencies() -> [CurrencyCell] {
+        var leftRightCurrencies: [CurrencyCell] = []
+        
+        guard let leftCurrency = currencies.filter({ $0.selectedSide == .none }).randomElement() else { return [] }
+        leftRightCurrencies.append(leftCurrency)
+        guard let indexLeft = currencies.firstIndex(where: { $0.label == leftRightCurrencies[0].label }) else { return [] }
+        currencies[indexLeft].selectedSide = .left
+        
+        guard let rightCurrency = currencies.filter({ $0.selectedSide == .none }).randomElement() else { return [] }
+        leftRightCurrencies.append(rightCurrency)
+        guard let indexRight = currencies.firstIndex(where: { $0.label == leftRightCurrencies[1].label }) else { return [] }
+        currencies[indexRight].selectedSide = .right
+        
+        return leftRightCurrencies
+    }
+    
+    func clearSelectionBySide(side: SelectedSide) {
+        if side == .left {
+            for index in currencies.indices where currencies[index].selectedSide == .left {
+                currencies[index].selectedSide = .none
+            }
+        } else if side == .right {
+            for index in currencies.indices where currencies[index].selectedSide == .right {
+                currencies[index].selectedSide = .none
+            }
+        }
+    }
 }
 
 // MARK: - Private Methods
@@ -105,7 +133,7 @@ private extension CurrenciesDataProvider {
                             type: type
                         )
                     )
-                    
+                
                     isFiat.toggle()
                 }
             }
@@ -145,6 +173,12 @@ private extension CurrenciesDataProvider {
             currencies[oldIndex].selectedSide = .none
         }
     }
+    
+    func clearAllSelections() {
+        for index in currencies.indices where (currencies[index].selectedSide == .left || currencies[index].selectedSide == .right) {
+            currencies[index].selectedSide = .none
+        }
+    }
 }
 
 extension CurrenciesDataProvider: UICollectionViewDataSource {
@@ -178,13 +212,12 @@ extension CurrenciesDataProvider: UICollectionViewDelegate {
         
         let tappedCurrency = filteredCurrencies[indexPath.item]
         
-        guard let selectedIndex = currencies.firstIndex(where: { $0.label == tappedCurrency.label }) else {
-            return
-        }
+        guard let selectedIndex = currencies.firstIndex(where: { $0.label == tappedCurrency.label }) else { return }
         
         guard canSelectCurrency(at: selectedIndex) else { return }
         
-        clearPreviousSelectionIfNeeded()
+//        clearPreviousSelectionIfNeeded()
+        clearSelectionBySide(side: activeSide)
         currencies[selectedIndex].selectedSide = activeSide
         
         applyFilters(typeFilter: currentFilter, favoritesOnly: false)

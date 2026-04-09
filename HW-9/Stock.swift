@@ -83,8 +83,16 @@ final class Stock: PrintOperation {
         executeWithoutPrinting(amount)
         return (balance, totalTradeResult)
     }
+    
+    func clearFinalResult(balance: Double) {
+        self.balance = balance
+        totalTradeResult = 0
+        operations = []
+    }
 }
 
+
+// MARK: - Private Methods
 private extension Stock {
     func makeSnapshot() -> MarketSnapshot {
         MarketSnapshot(
