@@ -166,6 +166,7 @@ private extension CurrenciesDataProvider {
     }
 }
 
+// MARK: - UICollectionViewDataSource
 extension CurrenciesDataProvider: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         filteredCurrencies.count

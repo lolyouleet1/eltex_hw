@@ -1,22 +1,29 @@
 import Foundation
-import UIKit
+import CoreGraphics
 
 enum CandlestickFactory {
-    static func makeCandlesticks(from operations: [Operation]) -> [CandlestickView] {
-        var candlesticks: [CandlestickView] = []
+    static func makeCandlesticks(from operations: [Operation]) -> [Candlestick] {
+        var result: [Candlestick] = []
         
-        for index in operations.indices {
-            let candlestick = CandlestickView()
+        for _ in operations {
+            let open = Double.random(in: 80...120)
+            let close = Double.random(in: 80...120)
+            let high = max(open, close) + Double.random(in: 1...15)
+            let low = min(open, close) - Double.random(in: 1...15)
+            let verticalOffset = CGFloat.random(in: -40...40)
             
-            if index == 0 {
-                candlestick.configure(previousPrice: 0, currentPrice: operations[index].price)
-            } else {
-                candlestick.configure(previousPrice: operations[index - 1].price, currentPrice: operations[index].price)
-            }
+            let candlestick = Candlestick(
+                open: open,
+                close: close,
+                high: high,
+                low: low,
+                verticalOffset: verticalOffset,
+                recommendation: OperationType.random
+            )
             
-            candlesticks.append(candlestick)
+            result.append(candlestick)
         }
         
-        return candlesticks
+        return result
     }
 }

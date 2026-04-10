@@ -56,6 +56,7 @@ final class BotViewController: UIViewController {
         setupActions()
         setupConstraints()
         setupBarItems()
+        setupSwipeUpGesture()
     }
 }
 
@@ -63,6 +64,7 @@ final class BotViewController: UIViewController {
 private extension BotViewController {
     func setupView() {
         view.backgroundColor = .systemBackground
+        view.isUserInteractionEnabled = true
     }
     
     func setupTableView() {
@@ -183,6 +185,23 @@ private extension BotViewController {
             target: self,
             action: #selector(handleRightBarButtonItem)
         )
+    }
+    
+    func setupSwipeUpGesture() {
+        let viewSwipeUpGesture = UISwipeGestureRecognizer(
+            target: self,
+            action: #selector(handleSwipeUpGesture)
+        )
+        viewSwipeUpGesture.direction = .up
+        view.addGestureRecognizer(viewSwipeUpGesture)
+    }
+}
+
+// MARK: - Handle Swipe Up Gesture
+private extension BotViewController {
+    @objc func handleSwipeUpGesture() {
+        let vc = GraphViewController(tradingSession: session)
+        navigationController?.pushViewController(vc, animated: true)
     }
 }
 
@@ -318,6 +337,8 @@ private extension BotViewController {
 private extension BotViewController {
     @objc func handleLeftBarButtonItem() {
         session.stock.clearFinalResult(balance: Constants.startBalance)
+        session.operations = []
+        session.candlesticks = []
                 
         balanceLabel.text = "Balance: \(Constants.startBalance)"
         profitLabel.text = "Profit: \(0)"

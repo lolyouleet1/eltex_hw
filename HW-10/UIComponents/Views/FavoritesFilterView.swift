@@ -25,7 +25,7 @@ final class FavoritesFilterView: UIView {
     // MARK: - Lifecycle
     override init(frame: CGRect) {
         super.init(frame: frame)
-        
+                
         setupHierarchy()
         setupConstraints()
         setupActions()

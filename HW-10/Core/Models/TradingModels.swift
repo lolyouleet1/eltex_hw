@@ -37,10 +37,14 @@ struct MarketSnapshot {
     }
 }
 
-enum OperationType {
+enum OperationType: CaseIterable {
     case buy
     case sell
     case ignore
+    
+    static var random: OperationType {
+        allCases.randomElement()!
+    }
 }
 
 struct Operation {

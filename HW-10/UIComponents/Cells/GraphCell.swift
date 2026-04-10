@@ -1,15 +1,14 @@
-import Foundation
 import UIKit
 
 final class GraphCell: UICollectionViewCell {
     // MARK: - Properties
     static let identifier = "GraphCell"
-    private var candlestickView: CandlestickView
+    
+    private let candlestickView = CandlestickView()
     
     // MARK: - Lifecycle
     override init(frame: CGRect) {
         super.init(frame: frame)
-        candlestickView = CandlestickView()
         
         setupHierarchy()
         setupConstraints()
@@ -19,9 +18,14 @@ final class GraphCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        candlestickView.reset()
+    }
+    
     // MARK: - Public Methods
-    func configure(with view: CandlestickView) {
-        candlestickView = view
+    func configure(with candlestick: Candlestick) {
+        candlestickView.configure(with: candlestick)
     }
 }
 
@@ -38,18 +42,10 @@ private extension GraphCell {
         candlestickView.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            candlestickView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: Constants.candlestickViewVerticalInset),
-            candlestickView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -Constants.candlestickViewVerticalInset),
-            candlestickView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Constants.candlestickViewHorizontalInset),
-            candlestickView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Constants.candlestickViewHorizontalInset)
+            candlestickView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
+            candlestickView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20),
+            candlestickView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            candlestickView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10)
         ])
-    }
-}
-
-// MARK: - Constants
-private extension GraphCell {
-    enum Constants {
-        static let candlestickViewVerticalInset: CGFloat = 30
-        static let candlestickViewHorizontalInset: CGFloat = 10
     }
 }

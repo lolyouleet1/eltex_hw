@@ -21,11 +21,9 @@ private extension SceneDelegate {
         
         let botViewController = BotViewController(tradingSession: session)
         botViewController.tabBarItem = UITabBarItem(title: "Bot", image: UIImage(systemName: "circle"), tag: 0)
-        
         let navigationController = UINavigationController(rootViewController: botViewController)
-        let graphVC = GraphViewController(tradingSession: session)
         
-        tabBarContoller.viewControllers = [graphVC, navigationController]
+        tabBarContoller.viewControllers = [navigationController]
         
         return tabBarContoller
     }

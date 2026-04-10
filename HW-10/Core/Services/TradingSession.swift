@@ -5,7 +5,7 @@ final class TradingSession {
 
     var cycles: Int = 0
     var operations: [Operation] = []
-    var candlesticks: [CandlestickView] = []
+    var candlesticks: [Candlestick] = []
     var finalBalance: Double
     var finalProfit: Double = 0
 
