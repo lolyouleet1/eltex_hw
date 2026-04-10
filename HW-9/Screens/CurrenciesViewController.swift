@@ -1,7 +1,6 @@
 import UIKit
 
 final class CurrenciesViewController: UIViewController {
-    
     // MARK: - UI
     private let collectionView = UICollectionView(
         frame: .zero,
@@ -127,6 +126,43 @@ private extension CurrenciesViewController {
         exchangeRateStackView.addArrangedSubview(timerLabel)
     }
     
+    func setupCurrencyLabelGestures() {
+        let leftTapGesture = UITapGestureRecognizer(
+            target: self,
+            action: #selector(leftCurrencyLabelTapped)
+        )
+        leftCurrencyLabel.addGestureRecognizer(leftTapGesture)
+        
+        let rightTapGesture = UITapGestureRecognizer(
+            target: self,
+            action: #selector(rightCurrencyLabelTapped)
+        )
+        rightCurrencyLabel.addGestureRecognizer(rightTapGesture)
+    }
+    
+    func setupFilterLabelGestures() {
+        let allTapGesture = UITapGestureRecognizer(
+            target: self,
+            action: #selector(handleFilterLabelTapped(_:))
+        )
+        allLabel.addGestureRecognizer(allTapGesture)
+        
+        let fiatTapGesture = UITapGestureRecognizer(
+            target: self,
+            action: #selector(handleFilterLabelTapped(_:))
+        )
+        fiatLabel.addGestureRecognizer(fiatTapGesture)
+        
+        let cryptoTapGesture = UITapGestureRecognizer(
+            target: self,
+            action: #selector(handleFilterLabelTapped(_:))
+        )
+        cryptoLabel.addGestureRecognizer(cryptoTapGesture)
+    }
+}
+
+// MARK: - Constraints
+private extension CurrenciesViewController {
     func setupConstraints() {
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         leftCurrencyLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -180,40 +216,6 @@ private extension CurrenciesViewController {
                 constant: -Constants.collectionHorizontalInset
             )
         ])
-    }
-    
-    func setupCurrencyLabelGestures() {
-        let leftTapGesture = UITapGestureRecognizer(
-            target: self,
-            action: #selector(leftCurrencyLabelTapped)
-        )
-        leftCurrencyLabel.addGestureRecognizer(leftTapGesture)
-        
-        let rightTapGesture = UITapGestureRecognizer(
-            target: self,
-            action: #selector(rightCurrencyLabelTapped)
-        )
-        rightCurrencyLabel.addGestureRecognizer(rightTapGesture)
-    }
-    
-    func setupFilterLabelGestures() {
-        let allTapGesture = UITapGestureRecognizer(
-            target: self,
-            action: #selector(handleFilterLabelTapped(_:))
-        )
-        allLabel.addGestureRecognizer(allTapGesture)
-        
-        let fiatTapGesture = UITapGestureRecognizer(
-            target: self,
-            action: #selector(handleFilterLabelTapped(_:))
-        )
-        fiatLabel.addGestureRecognizer(fiatTapGesture)
-        
-        let cryptoTapGesture = UITapGestureRecognizer(
-            target: self,
-            action: #selector(handleFilterLabelTapped(_:))
-        )
-        cryptoLabel.addGestureRecognizer(cryptoTapGesture)
     }
 }
 
@@ -456,6 +458,7 @@ extension CurrenciesViewController: CollectionViewCellDelegate {
     }
 }
 
+// MARK: - FavoritesFilterViewDelegate
 extension CurrenciesViewController: FavoritesFilterViewDelegate {
     func favoritesFilterDidChange(isOn: Bool) {
         isFavoritesOnlyEnabled = isOn

@@ -1,13 +1,10 @@
 import UIKit
 
-// MARK: - Protocols
 protocol CurrencyDelegate: AnyObject {
     func currencySelected(_ currency: CurrencyCell)
 }
 
-// MARK: - Data Provider
 final class CurrenciesDataProvider: NSObject {
-    
     // MARK: - Properties
     private var currencies: [CurrencyCell] = []
     private var filteredCurrencies: [CurrencyCell] = []
@@ -167,18 +164,6 @@ private extension CurrenciesDataProvider {
         
         return true
     }
-    
-    func clearPreviousSelectionIfNeeded() {
-        if let oldIndex = currencies.firstIndex(where: { $0.selectedSide == activeSide }) {
-            currencies[oldIndex].selectedSide = .none
-        }
-    }
-    
-    func clearAllSelections() {
-        for index in currencies.indices where (currencies[index].selectedSide == .left || currencies[index].selectedSide == .right) {
-            currencies[index].selectedSide = .none
-        }
-    }
 }
 
 extension CurrenciesDataProvider: UICollectionViewDataSource {
@@ -216,7 +201,6 @@ extension CurrenciesDataProvider: UICollectionViewDelegate {
         
         guard canSelectCurrency(at: selectedIndex) else { return }
         
-//        clearPreviousSelectionIfNeeded()
         clearSelectionBySide(side: activeSide)
         currencies[selectedIndex].selectedSide = activeSide
         

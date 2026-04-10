@@ -5,9 +5,10 @@ protocol FavoritesFilterViewDelegate: AnyObject {
 }
 
 final class FavoritesFilterView: UIView {
-    
+    // MARK: - Delegate
     weak var delegate: FavoritesFilterViewDelegate?
     
+    // MARK: - Properties
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = "Show favorites only"
@@ -21,8 +22,10 @@ final class FavoritesFilterView: UIView {
         return control
     }()
     
+    // MARK: - Lifecycle
     override init(frame: CGRect) {
         super.init(frame: frame)
+        
         setupHierarchy()
         setupConstraints()
         setupActions()
@@ -33,24 +36,11 @@ final class FavoritesFilterView: UIView {
     }
 }
 
+// MARK: - Private Methods
 private extension FavoritesFilterView {
     func setupHierarchy() {
         addSubview(titleLabel)
         addSubview(favoritesSwitch)
-    }
-    
-    func setupConstraints() {
-        NSLayoutConstraint.activate([
-            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            titleLabel.trailingAnchor.constraint(equalTo: centerXAnchor),
-            
-            favoritesSwitch.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: Constants.favoritesSwitchTrailing),
-            favoritesSwitch.centerYAnchor.constraint(equalTo: centerYAnchor),
-            
-            topAnchor.constraint(equalTo: titleLabel.topAnchor),
-            bottomAnchor.constraint(equalTo: titleLabel.bottomAnchor)
-        ])
     }
     
     func setupActions() {
@@ -66,6 +56,27 @@ private extension FavoritesFilterView {
     }
 }
 
+// MARK: - Constraints
+private extension FavoritesFilterView {
+    func setupConstraints() {
+        NSLayoutConstraint.activate([
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
+            titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: centerXAnchor),
+            
+            favoritesSwitch.trailingAnchor.constraint(
+                equalTo: titleLabel.trailingAnchor,
+                constant: Constants.favoritesSwitchTrailing
+            ),
+            favoritesSwitch.centerYAnchor.constraint(equalTo: centerYAnchor),
+            
+            topAnchor.constraint(equalTo: titleLabel.topAnchor),
+            bottomAnchor.constraint(equalTo: titleLabel.bottomAnchor)
+        ])
+    }
+}
+
+// MARK: - Constants
 private extension FavoritesFilterView {
     enum Constants {
         static let favoritesSwitchTrailing: CGFloat = 24

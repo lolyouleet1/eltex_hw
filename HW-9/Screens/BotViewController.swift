@@ -46,7 +46,7 @@ final class BotViewController: UIViewController {
         setupNoDataLabel()
         setupActions()
         setupConstraints()
-        setBarItems()
+        setupBarItems()
     }
 }
 
@@ -103,12 +103,12 @@ private extension BotViewController {
     func setupCurrenciesView() {
         currenciesView.backgroundColor = .white
         
-        leftCurrencyLabel.text = "Choose"
+        leftCurrencyLabel.text = Constants.basicCurrencyLabelText
         leftCurrencyLabel.backgroundColor = .orange
         leftCurrencyLabel.textAlignment = .center
         leftCurrencyLabel.isUserInteractionEnabled = true
         
-        rightCurrencyLabel.text = "Choose"
+        rightCurrencyLabel.text = Constants.basicCurrencyLabelText
         rightCurrencyLabel.backgroundColor = .orange
         rightCurrencyLabel.textAlignment = .center
         rightCurrencyLabel.isUserInteractionEnabled = true
@@ -157,6 +157,24 @@ private extension BotViewController {
         )
         rightCurrencyLabel.addGestureRecognizer(gesture)
     }
+    
+    func setupBarItems() {
+        title = "Bot"
+        
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            image: UIImage(systemName: "trash"),
+            style: .plain,
+            target: self,
+            action: #selector(handleLeftBarButtonItem)
+        )
+        
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            image: UIImage(systemName: "bitcoinsign.bank.building"),
+            style: .plain,
+            target: self,
+            action: #selector(handleRightBarButtonItem)
+        )
+    }
 }
 
 // MARK: - Currency Selection
@@ -195,7 +213,7 @@ private extension BotViewController {
             return
         }
         
-        guard botEnabledSwitch.isOn else { return }
+        guard botEnabledSwitch.isOn && isCurrencySet() else { return }
         
         let (finalBalance, finalProfit) = stock.getFinalResult(cycles)
         
@@ -208,6 +226,10 @@ private extension BotViewController {
         tableView.isHidden = false
         
         operations = stock.getOperations(cycles)
+    }
+    
+    func isCurrencySet() -> Bool {
+        return leftCurrencyLabel.text != Constants.basicCurrencyLabelText && rightCurrencyLabel.text != Constants.basicCurrencyLabelText
     }
 }
 
@@ -283,24 +305,6 @@ private extension BotViewController {
 
 // MARK: - Navigation Bar
 private extension BotViewController {
-    func setBarItems() {
-        title = "Bot"
-        
-        navigationItem.leftBarButtonItem = UIBarButtonItem(
-            image: UIImage(systemName: "trash"),
-            style: .plain,
-            target: self,
-            action: #selector(handleLeftBarButtonItem)
-        )
-        
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            image: UIImage(systemName: "bitcoinsign.bank.building"),
-            style: .plain,
-            target: self,
-            action: #selector(handleRightBarButtonItem)
-        )
-    }
-    
     @objc func handleLeftBarButtonItem() {
         stock.clearFinalResult(balance: Constants.startBalance)
                 
@@ -376,5 +380,6 @@ private extension BotViewController {
         static let currenciesViewHeight: CGFloat = 20
         static let currenciesViewWidth: CGFloat = 130
         static let currencyLabelSpacing: CGFloat = 6
+        static let basicCurrencyLabelText: String = "Choose"
     }
 }

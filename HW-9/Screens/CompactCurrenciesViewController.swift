@@ -141,6 +141,7 @@ private extension CompactCurrenciesViewController {
         } else if tappedLabel == allLabel {
             activeFilter = .all
         }
+        
         changeFilterType()
         applyCurrentFilters()
     }

@@ -1,17 +1,8 @@
 import UIKit
 
 final class TableViewCell: UITableViewCell {
-    
+    // MARK: - Properties
     static let identifier = "TableViewCell"
-    
-    private enum Constants {
-        static let horizontalInset: CGFloat = 12
-        static let labelFontSize: CGFloat = 14
-        static let buySellLabelHeight: CGFloat = 42
-        static let ignoreLabelHeight: CGFloat = 30
-        static let additionalViewHeight: CGFloat = 16
-        static let zeroHeight: CGFloat = 0
-    }
     
     private let operationLabel: UILabel = {
         let label = UILabel()
@@ -38,6 +29,7 @@ final class TableViewCell: UITableViewCell {
         }
     }
     
+    // MARK: - Lifecycle
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         
@@ -102,22 +94,53 @@ private extension TableViewCell {
         contentView.addSubview(operationLabel)
         contentView.addSubview(additionalView)
     }
-    
+}
+
+// MARK: - Constraints
+private extension TableViewCell {
     func setupConstraints() {
-        additionalViewHeightConstraint = additionalView.heightAnchor.constraint(equalToConstant: Constants.zeroHeight)
-        operationLabelHeightConstraint = operationLabel.heightAnchor.constraint(equalToConstant: Constants.zeroHeight)
+        additionalViewHeightConstraint = additionalView.heightAnchor.constraint(
+            equalToConstant: Constants.zeroHeight
+        )
+        operationLabelHeightConstraint = operationLabel.heightAnchor.constraint(
+            equalToConstant: Constants.zeroHeight
+        )
         
         NSLayoutConstraint.activate([
             operationLabel.topAnchor.constraint(equalTo: contentView.topAnchor),
             operationLabelHeightConstraint,
-            operationLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Constants.horizontalInset),
-            operationLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Constants.horizontalInset),
+            operationLabel.leadingAnchor.constraint(
+                equalTo: contentView.leadingAnchor,
+                constant: Constants.horizontalInset
+            ),
+            operationLabel.trailingAnchor.constraint(
+                equalTo: contentView.trailingAnchor,
+                constant: -Constants.horizontalInset
+            ),
             
             additionalView.topAnchor.constraint(equalTo: operationLabel.bottomAnchor),
             additionalViewHeightConstraint,
             additionalView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            additionalView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Constants.horizontalInset),
-            additionalView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Constants.horizontalInset)
+            additionalView.leadingAnchor.constraint(
+                equalTo: contentView.leadingAnchor,
+                constant: Constants.horizontalInset
+            ),
+            additionalView.trailingAnchor.constraint(
+                equalTo: contentView.trailingAnchor,
+                constant: -Constants.horizontalInset
+            )
         ])
+    }
+}
+
+// MARK: - Constants
+private extension TableViewCell {
+    enum Constants {
+        static let horizontalInset: CGFloat = 12
+        static let labelFontSize: CGFloat = 14
+        static let buySellLabelHeight: CGFloat = 42
+        static let ignoreLabelHeight: CGFloat = 30
+        static let additionalViewHeight: CGFloat = 16
+        static let zeroHeight: CGFloat = 0
     }
 }

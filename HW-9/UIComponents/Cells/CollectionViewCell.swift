@@ -5,16 +5,10 @@ protocol CollectionViewCellDelegate: AnyObject {
 }
 
 final class CollectionViewCell: UICollectionViewCell {
-    
+    // MARK: - Properties
     static let identifier = "CollectionViewCell"
     
     weak var delegate: CollectionViewCellDelegate?
-    
-    // MARK: - Constants
-    private enum Constants {
-        static let starLabelTopSpacing: CGFloat = 4
-        static let starLabelTrailingSpacing: CGFloat = -4
-    }
     
     private let currencyLabel: UILabel = {
         let label = UILabel()
@@ -32,9 +26,11 @@ final class CollectionViewCell: UICollectionViewCell {
         label.isUserInteractionEnabled = true
         return label
     }()
-        
+    
+    // MARK: - Lifecycle
     override init(frame: CGRect) {
         super.init(frame: frame)
+        
         setupHierarchy()
         setupConstraints()
         setupStarLabelGesture()
@@ -46,10 +42,12 @@ final class CollectionViewCell: UICollectionViewCell {
     
     override func prepareForReuse() {
         super.prepareForReuse()
+        
         currencyLabel.text = nil
         contentView.backgroundColor = .clear
     }
     
+    // MARK: - Public Methods
     func configure(with currency: CurrencyCell) {
         currencyLabel.text = currency.label
         
@@ -71,24 +69,42 @@ private extension CollectionViewCell {
         contentView.addSubview(starLabel)
     }
     
-    func setupConstraints() {
-        NSLayoutConstraint.activate([
-            currencyLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            currencyLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            
-            starLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: Constants.starLabelTrailingSpacing),
-            starLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: Constants.starLabelTopSpacing)
-        ])
-    }
-    
     func setupStarLabelGesture() {
         let starTapGesture = UITapGestureRecognizer(
             target: self,
-            action: #selector(handleStarLabelTapped))
+            action: #selector(handleStarLabelTapped)
+        )
         starLabel.addGestureRecognizer(starTapGesture)
     }
     
     @objc func handleStarLabelTapped() {
         delegate?.didFavoriteTapped(in: self)
+    }
+}
+
+// MARK: - Constraints
+private extension CollectionViewCell {
+    func setupConstraints() {
+        NSLayoutConstraint.activate([
+            currencyLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            currencyLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            
+            starLabel.trailingAnchor.constraint(
+                equalTo: contentView.trailingAnchor,
+                constant: Constants.starLabelTrailingSpacing
+            ),
+            starLabel.topAnchor.constraint(
+                equalTo: contentView.topAnchor,
+                constant: Constants.starLabelTopSpacing
+            )
+        ])
+    }
+}
+
+// MARK: - Constants
+private extension CollectionViewCell {
+    enum Constants {
+        static let starLabelTopSpacing: CGFloat = 4
+        static let starLabelTrailingSpacing: CGFloat = -4
     }
 }
