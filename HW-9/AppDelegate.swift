@@ -1,10 +1,3 @@
-//
-//  AppDelegate.swift
-//  HW-4
-//
-//  Created by Roman Prokhorov on 19.03.2026.
-//
-
 import UIKit
 
 @main
