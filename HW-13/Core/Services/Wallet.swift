@@ -6,7 +6,7 @@ final class Wallet {
     private var credits: [String : Float] = [:]
     
     // MARK: - Concurrency
-    private let queue = DispatchQueue(label: "Wallet.queue")
+    private let queue = DispatchQueue(label: "wallet.queue")
     
     init(startBalance: [String : Float], startCredits: [String : Float]) {
         self.balances = startBalance
@@ -19,8 +19,10 @@ final class Wallet {
         
         queue.sync {
             if fullBuyPrice > balances[quote.code, default: 0] {
-                credits[quote.code, default: 0] += 1000
-                balances[quote.code, default: 0] += 1000
+                let maxBaseValue = AppConfiguration.TradeBotSettings.maxCurrencyBaseValue
+                let maxBuyAmount = AppConfiguration.TradeBotSettings.maxBuyAmount
+                credits[quote.code, default: 0] += maxBaseValue * Float(maxBuyAmount)
+                balances[quote.code, default: 0] += maxBaseValue * Float(maxBuyAmount)
             }
             
             balances[base.code, default: 0] += Float(amount)

@@ -13,7 +13,7 @@ final class BotViewController: UIViewController {
     private let startBotButton = UIButton(type: .system)
     
     private let cyclesInputContainerView = UIView()
-    private let cyclesTextField = UITextField()
+    private let botAmountTextField = UITextField()
     
     private let currenciesView = UIView()
     private let leftCurrencyLabel = UILabel()
@@ -115,7 +115,7 @@ private extension BotViewController {
         headerView.addSubview(randomCurrenciesButton)
         
         cyclesInputContainerView.addSubview(botControlView)
-        cyclesInputContainerView.addSubview(cyclesTextField)
+        cyclesInputContainerView.addSubview(botAmountTextField)
         cyclesInputContainerView.addSubview(currenciesView)
         
         botControlView.addSubview(botEnabledSwitch)
@@ -195,15 +195,15 @@ private extension BotViewController {
     }
     
     func setupCyclesInputSection() {
-        cyclesTextField.placeholder = Constants.cyclesPlaceholder
-        cyclesTextField.borderStyle = .none
-        cyclesTextField.backgroundColor = Constants.textFieldBackgroundColor
-        cyclesTextField.textColor = Constants.primaryTextColor
-        cyclesTextField.font = .systemFont(ofSize: Constants.textFieldFontSize)
-        cyclesTextField.layer.cornerRadius = Constants.textFieldCornerRadius
-        cyclesTextField.layer.borderWidth = Constants.textFieldBorderWidth
-        cyclesTextField.layer.borderColor = Constants.textFieldBorderColor
-        cyclesTextField.leftView = UIView(
+        botAmountTextField.placeholder = Constants.cyclesPlaceholder
+        botAmountTextField.borderStyle = .none
+        botAmountTextField.backgroundColor = Constants.textFieldBackgroundColor
+        botAmountTextField.textColor = Constants.primaryTextColor
+        botAmountTextField.font = .systemFont(ofSize: Constants.textFieldFontSize)
+        botAmountTextField.layer.cornerRadius = Constants.textFieldCornerRadius
+        botAmountTextField.layer.borderWidth = Constants.textFieldBorderWidth
+        botAmountTextField.layer.borderColor = Constants.textFieldBorderColor
+        botAmountTextField.leftView = UIView(
             frame: CGRect(
                 x: .zero,
                 y: .zero,
@@ -211,7 +211,7 @@ private extension BotViewController {
                 height: Constants.textFieldHeight
             )
         )
-        cyclesTextField.leftViewMode = .always
+        botAmountTextField.leftViewMode = .always
         
         botEnabledSwitch.isOn = Constants.isBotEnabledByDefault
         botEnabledSwitch.onTintColor = Constants.primaryColor
@@ -339,7 +339,7 @@ private extension BotViewController {
 private extension BotViewController {
     @objc func handleStartBotButtonTapped() {
         viewModel.handleStart(
-            cyclesText: cyclesTextField.text,
+            cyclesText: botAmountTextField.text,
             isBotEnabled: botEnabledSwitch.isOn
         )
         
@@ -356,7 +356,7 @@ private extension BotViewController {
         randomCurrenciesButton.translatesAutoresizingMaskIntoConstraints = false
         noDataLabel.translatesAutoresizingMaskIntoConstraints = false
         botControlView.translatesAutoresizingMaskIntoConstraints = false
-        cyclesTextField.translatesAutoresizingMaskIntoConstraints = false
+        botAmountTextField.translatesAutoresizingMaskIntoConstraints = false
         botEnabledLabel.translatesAutoresizingMaskIntoConstraints = false
         botEnabledSwitch.translatesAutoresizingMaskIntoConstraints = false
         stackView.translatesAutoresizingMaskIntoConstraints = false
@@ -413,10 +413,10 @@ private extension BotViewController {
             currenciesView.topAnchor.constraint(equalTo: cyclesInputContainerView.topAnchor),
             currenciesView.leadingAnchor.constraint(equalTo: cyclesInputContainerView.leadingAnchor),
             
-            cyclesTextField.leadingAnchor.constraint(equalTo: currenciesView.trailingAnchor, constant: Constants.imageToFieldSpacing),
-            cyclesTextField.trailingAnchor.constraint(equalTo: cyclesInputContainerView.trailingAnchor),
-            cyclesTextField.centerYAnchor.constraint(equalTo: currenciesView.centerYAnchor),
-            cyclesTextField.heightAnchor.constraint(equalToConstant: Constants.textFieldHeight),
+            botAmountTextField.leadingAnchor.constraint(equalTo: currenciesView.trailingAnchor, constant: Constants.imageToFieldSpacing),
+            botAmountTextField.trailingAnchor.constraint(equalTo: cyclesInputContainerView.trailingAnchor),
+            botAmountTextField.centerYAnchor.constraint(equalTo: currenciesView.centerYAnchor),
+            botAmountTextField.heightAnchor.constraint(equalToConstant: Constants.textFieldHeight),
             
             botControlView.topAnchor.constraint(equalTo: currenciesView.bottomAnchor, constant: Constants.switchSectionTopSpacing),
             botControlView.leadingAnchor.constraint(equalTo: cyclesInputContainerView.leadingAnchor),
@@ -491,7 +491,7 @@ private extension BotViewController {
     enum Constants {
         static let screenTitle = "Bot"
         static let startBotButtonTitle = "START BOT"
-        static let cyclesPlaceholder = "How many operations?"
+        static let cyclesPlaceholder = "Bots amount"
         static let botEnabledLabelText = "Allow the bot to work:"
         static let warningText = "WARNING: not enough data"
         static let clearButtonImageName = "trash"

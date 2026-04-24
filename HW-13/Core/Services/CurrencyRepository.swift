@@ -70,7 +70,7 @@ private extension MockCurrencyRepository {
     
     static func makeRandomBaseValue() -> Float {
         AppConfiguration.PriceFormatting.rounded(
-            Float.random(in: Constants.minimumBaseValue...Constants.maximumBaseValue)
+            Float.random(in: AppConfiguration.TradeBotSettings.minCurrencyBaseValue...AppConfiguration.TradeBotSettings.maxCurrencyBaseValue)
         )
     }
 }
@@ -79,7 +79,5 @@ private extension MockCurrencyRepository {
 private extension MockCurrencyRepository {
     enum Constants {
         static let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        static let minimumBaseValue: Float = 0.01
-        static let maximumBaseValue: Float = 1000
     }
 }

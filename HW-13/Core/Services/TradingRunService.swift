@@ -29,36 +29,53 @@ final class TradingRunService {
     
     func runBots(bots: [WalletBot]) -> [BotDayResult] {
         let workQueue = DispatchQueue.global(qos: .userInitiated)
-        // ДОБАВИТЬ ЕЩЕ ОДНУ ОЧЕРЕДЬ ДЛЯ ДОБАВЛЕНИЯ РЕЗУЛЬТАТА
+        let resultQueue = DispatchQueue(label: "result.queue")
         let group = DispatchGroup()
         
-        var result: [BotDayResult] = []
-        
         let daysAmount = AppConfiguration.TradeBotSettings.workingDays
+        var result: [BotDayResult] = Array(repeating: makeEmptyBotDayResult(), count: (daysAmount + 1) * bots.count)
         
         for dayNumber in 0..<daysAmount {
-            for bot in bots {
-                let baseCurrencyCode = bot.pair.base.code
-                let quoteCurrencyCode = bot.pair.quote.code
+            for botIndex in bots.indices {
+                let baseCurrencyCode = bots[botIndex].pair.base.code
+                let quoteCurrencyCode = bots[botIndex].pair.quote.code
                 let pairName = "\(baseCurrencyCode)-\(quoteCurrencyCode)"
                 
                 group.enter()
-                
                 workQueue.async {
-                    let totalIncome = self.tradingEngine.makeResultBot(wallet: self.wallet, bot: bot)
+                    let totalIncome = self.tradingEngine.makeResultBot(wallet: self.wallet, bot: bots[botIndex])
                     
-                    result.append(BotDayResult(
-                        botName: bot.name,
-                        currencyPair: pairName,
-                        day: dayNumber,
-                        income: totalIncome,
-                        incomeCurrencyCode: quoteCurrencyCode
-                    ))
+                    resultQueue.sync {
+                        let index = dayNumber * bots.count + botIndex
+                        
+                        result[index] = BotDayResult(
+                            botName: bots[botIndex].name,
+                            currencyPair: pairName,
+                            day: dayNumber,
+                            income: totalIncome,
+                            incomeCurrencyCode: quoteCurrencyCode
+                        )
+                        
+                        group.leave()
+                    }
                 }
             }
         }
         
         group.wait()
         return result
+    }
+}
+
+// MARK: - Private Methods
+private extension TradingRunService {
+    func makeEmptyBotDayResult() -> BotDayResult {
+        return BotDayResult(
+            botName: "0",
+            currencyPair: "0",
+            day: .zero,
+            income: .zero,
+            incomeCurrencyCode: "0"
+        )
     }
 }

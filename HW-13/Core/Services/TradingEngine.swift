@@ -70,7 +70,7 @@ final class TradingEngine {
             let action = makeOperationDecision(snapshot: snapshot)
             let baseCurrency = bot.pair.base
             let quoteCurrency = bot.pair.quote
-            let buyAmount: Int = Int.random(in: 1...10)
+            let buyAmount: Int = Int.random(in: AppConfiguration.TradeBotSettings.minBuyAmount...AppConfiguration.TradeBotSettings.maxBuyAmount)
             
             switch action {
             case .buy:
@@ -79,12 +79,13 @@ final class TradingEngine {
                 }
                 wallet.buy(base: baseCurrency, quote: quoteCurrency, price: snapshot.currentPrice, amount: buyAmount)
             case .sell:
-                guard let averageBuyPrice = buyPrices.average else { return totalIncome }
+                guard let averageBuyPrice = buyPrices.average else { continue }
                 
                 let amount = buyPrices.count
-                let tradeResult = (snapshot.currentPrice - averageBuyPrice) * Float(amount)
+                let differenceInPrices = snapshot.currentPrice - averageBuyPrice
+                let tradeResult = differenceInPrices * Float(amount)
                 
-                wallet.sell(base: baseCurrency, quote: quoteCurrency, price: averageBuyPrice, amount: amount)
+                wallet.sell(base: baseCurrency, quote: quoteCurrency, price: snapshot.currentPrice, amount: amount)
                 totalIncome += tradeResult
                 
                 buyPrices.removeAll()
