@@ -26,7 +26,7 @@ final class TableViewCell: UITableViewCell {
     
     private var containerHeightConstraint: NSLayoutConstraint!
     
-    var currentOperation: OperationCellViewModel? {
+    var currentResult: BotResultCellViewModel? {
         didSet {
             updateAppearance()
         }
@@ -48,7 +48,7 @@ final class TableViewCell: UITableViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         
-        currentOperation = nil
+        currentResult = nil
         resetAppearance()
     }
 }
@@ -71,14 +71,14 @@ private extension TableViewCell {
 // MARK: - Private Methods
 private extension TableViewCell {
     func updateAppearance() {
-        guard let operation = currentOperation else { return }
+        guard let result = currentResult else { return }
         
-        let appearance = makeAppearance(for: operation.operationType)
-        operationLabel.text = operation.text
+        let appearance = makeAppearance(for: result.tone)
+        operationLabel.text = result.text
         operationLabel.textColor = appearance.textColor
         containerView.backgroundColor = appearance.backgroundColor
         accentView.backgroundColor = appearance.accentColor
-        containerHeightConstraint.constant = appearance.height
+        containerHeightConstraint.constant = Constants.rowHeight
     }
     
     func resetAppearance() {
@@ -89,28 +89,25 @@ private extension TableViewCell {
         containerHeightConstraint.constant = Constants.zeroHeight
     }
     
-    func makeAppearance(for operationType: OperationType) -> OperationAppearance {
-        switch operationType {
-        case .buy:
+    func makeAppearance(for tone: ResultTone) -> OperationAppearance {
+        switch tone {
+        case .neutral:
             return OperationAppearance(
-                backgroundColor: Constants.buyBackgroundColor,
-                accentColor: Constants.buyAccentColor,
-                textColor: Constants.primaryTextColor,
-                height: Constants.defaultRowHeight
+                backgroundColor: Constants.neutralBackgroundColor,
+                accentColor: Constants.neutralAccentColor,
+                textColor: Constants.primaryTextColor
             )
-        case .sell:
+        case .positive:
             return OperationAppearance(
-                backgroundColor: Constants.sellBackgroundColor,
-                accentColor: Constants.sellAccentColor,
-                textColor: Constants.sellTextColor,
-                height: Constants.largeRowHeight
+                backgroundColor: Constants.positiveBackgroundColor,
+                accentColor: Constants.positiveAccentColor,
+                textColor: Constants.positiveTextColor
             )
-        case .ignore:
+        case .negative:
             return OperationAppearance(
-                backgroundColor: Constants.ignoreBackgroundColor,
-                accentColor: Constants.ignoreAccentColor,
-                textColor: Constants.primaryTextColor,
-                height: Constants.defaultRowHeight
+                backgroundColor: Constants.negativeBackgroundColor,
+                accentColor: Constants.negativeAccentColor,
+                textColor: Constants.negativeTextColor
             )
         }
     }
@@ -163,7 +160,6 @@ private extension TableViewCell {
         let backgroundColor: UIColor
         let accentColor: UIColor
         let textColor: UIColor
-        let height: CGFloat
     }
 }
 
@@ -172,17 +168,17 @@ private extension TableViewCell {
     enum Constants {
         static let multilineLineCount = 0
         static let primaryTextColor = UIColor(red: 0.19, green: 0.20, blue: 0.40, alpha: 1)
-        static let sellTextColor = UIColor(red: 0.86, green: 0.15, blue: 0.26, alpha: 1)
-        static let buyAccentColor = UIColor(red: 0.08, green: 0.78, blue: 0.40, alpha: 1)
-        static let sellAccentColor = UIColor(red: 1.00, green: 0.14, blue: 0.32, alpha: 1)
-        static let ignoreAccentColor = UIColor(red: 1.00, green: 0.80, blue: 0.03, alpha: 1)
-        static let buyBackgroundColor: UIColor = UIColor(red: 0.93, green: 1.00, blue: 0.96, alpha: 1)
-        static let sellBackgroundColor = UIColor(red: 1.00, green: 0.95, blue: 0.98, alpha: 1)
-        static let ignoreBackgroundColor = UIColor(red: 1.00, green: 0.99, blue: 0.90, alpha: 1)
+        static let positiveTextColor = UIColor(red: 0.08, green: 0.58, blue: 0.28, alpha: 1)
+        static let negativeTextColor = UIColor(red: 0.86, green: 0.15, blue: 0.26, alpha: 1)
+        static let positiveAccentColor = UIColor(red: 0.08, green: 0.78, blue: 0.40, alpha: 1)
+        static let negativeAccentColor = UIColor(red: 1.00, green: 0.14, blue: 0.32, alpha: 1)
+        static let neutralAccentColor = UIColor(red: 0.31, green: 0.23, blue: 0.78, alpha: 1)
+        static let positiveBackgroundColor: UIColor = UIColor(red: 0.93, green: 1.00, blue: 0.96, alpha: 1)
+        static let negativeBackgroundColor = UIColor(red: 1.00, green: 0.95, blue: 0.98, alpha: 1)
+        static let neutralBackgroundColor = UIColor(red: 0.96, green: 0.95, blue: 1.00, alpha: 1)
         static let clearColor: UIColor = .clear
         static let labelFontSize: CGFloat = 15
-        static let defaultRowHeight: CGFloat = 52
-        static let largeRowHeight: CGFloat = 62
+        static let rowHeight: CGFloat = 56
         static let zeroHeight: CGFloat = .zero
         static let labelLeadingInset: CGFloat = 28
         static let labelTrailingInset: CGFloat = 16

@@ -1,6 +1,7 @@
 import Foundation
 
 enum LinesFactory {
+    // MARK: - Public Methods
     static func makeLinePoints(from operations: [Operation]) -> [LineChartPoint] {
         operations.enumerated().map { index, operation in
             LineChartPoint(

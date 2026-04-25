@@ -1,3 +1,4 @@
+// MARK: - Models
 struct CurrencyPair {
     let base: Currency
     let quote: Currency

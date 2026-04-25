@@ -1,5 +1,6 @@
 import Foundation
 
+// MARK: - Models
 struct MarketSnapshot {
     let currentPrice: Float
     let buyOrders: Int
@@ -14,12 +15,14 @@ struct MarketSnapshot {
     }
 }
 
+// MARK: - Enums
 enum OperationType {
     case buy
     case sell
     case ignore
 }
 
+// MARK: - Models
 struct Operation {
     let id: UUID
     let operationType: OperationType

@@ -1,5 +1,6 @@
 import Foundation
 
+// MARK: - Models
 struct Candlestick {
     let open: Float
     let close: Float
@@ -12,11 +13,13 @@ struct Candlestick {
     }
 }
 
+// MARK: - Enums
 enum ChartType: Int {
     case line
     case candlestick
 }
 
+// MARK: - Models
 struct LineChartPoint {
     let id: UUID
     let value: Float

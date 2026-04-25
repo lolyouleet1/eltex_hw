@@ -8,6 +8,7 @@ final class AppDependencyContainer {
     private let currencyRateService: CurrencyRateService
     private let operationFormatter: OperationFormatter
     private let tradingRunService: TradingRunService
+    private let tradeBotNameProvider: TradeBotNameProvider
     private let wallet: Wallet
     
     // MARK: - Lifecycle
@@ -23,6 +24,7 @@ final class AppDependencyContainer {
         let startCredits = AppDependencyContainer.setStartCredits(currencyRepository: currencyRepository)
         let wallet = Wallet(startBalance: startBalances, startCredits: startCredits)
         let tradingRunService = TradingRunService(tradingEngine: tradingEngine, wallet: wallet)
+        let tradeBotNameProvider = TradeBotNameProvider()
         
         self.currencyRepository = currencyRepository
         self.currencyFilterService = currencyFilterService
@@ -31,6 +33,7 @@ final class AppDependencyContainer {
         self.operationFormatter = operationFormatter
         self.wallet = wallet
         self.tradingRunService = tradingRunService
+        self.tradeBotNameProvider = tradeBotNameProvider
     }
     
     // MARK: - Public Methods
@@ -49,32 +52,37 @@ final class AppDependencyContainer {
             
             return CompactCurrenciesViewController(viewModel: viewModel)
         }
-        let graphViewControllerFactory: (TradingRunResult?) -> GraphViewController = { tradingResult in
-            let viewModel = GraphViewModel(tradingResult: tradingResult)
-            return GraphViewController(viewModel: viewModel)
+        
+        let walletViewControllerFactory: () -> WalletViewController = { [wallet, operationFormatter] in
+            WalletViewController(wallet: wallet, operationFormatter: operationFormatter)
         }
+//        let graphViewControllerFactory: (TradingRunResult?) -> GraphViewController = { tradingResult in
+//            let viewModel = GraphViewModel(tradingResult: tradingResult)
+//            return GraphViewController(viewModel: viewModel)
+//        }
         
         let viewModel = BotViewModel(
-            startBalance: AppConfiguration.Trading.startBalance,
             tradingRunService: tradingRunService,
             operationFormatter: operationFormatter,
             currencyRepository: currencyRepository,
-            currencySelectionService: currencySelectionService
+            currencySelectionService: currencySelectionService,
+            tradeBotNameProvider: tradeBotNameProvider
         )
         
         return BotViewController(
             viewModel: viewModel,
             compactCurrenciesViewControllerFactory: compactCurrenciesViewControllerFactory,
-            graphViewControllerFactory: graphViewControllerFactory
+            walletViewControllerFactory: walletViewControllerFactory
+//            graphViewControllerFactory: graphViewControllerFactory
         )
     }
 }
 
 // MARK: - Private Methods
 private extension AppDependencyContainer {
-    static func setStartBalances(currencyRepository: CurrencyRepositoryProtocol) -> [String : Float] {
+    static func setStartBalances(currencyRepository: CurrencyRepositoryProtocol) -> [String: Float] {
         let currencies = currencyRepository.getCurrencies()
-        var startBalances: [String : Float] = [:]
+        var startBalances: [String: Float] = [:]
         
         for currency in currencies {
             startBalances[currency.code] = AppConfiguration.Trading.startBalance
@@ -83,9 +91,9 @@ private extension AppDependencyContainer {
         return startBalances
     }
     
-    static func setStartCredits(currencyRepository: CurrencyRepositoryProtocol) -> [String : Float] {
+    static func setStartCredits(currencyRepository: CurrencyRepositoryProtocol) -> [String: Float] {
         let currencies = currencyRepository.getCurrencies()
-        var startCredits: [String : Float] = [:]
+        var startCredits: [String: Float] = [:]
         
         for currency in currencies {
             startCredits[currency.code] = AppConfiguration.Trading.startCredit

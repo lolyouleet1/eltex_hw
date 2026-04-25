@@ -212,10 +212,7 @@ private extension GraphViewModel {
         }
     }
     
-    static func makeCandlestickItems(
-        from candlesticks: [Candlestick],
-        preserving previousItems: [GraphCandlestickItemViewModel]
-    ) -> [GraphCandlestickItemViewModel] {
+    static func makeCandlestickItems(from candlesticks: [Candlestick], preserving previousItems: [GraphCandlestickItemViewModel]) -> [GraphCandlestickItemViewModel] {
         guard !candlesticks.isEmpty else { return [] }
         
         var result: [GraphCandlestickItemViewModel] = []

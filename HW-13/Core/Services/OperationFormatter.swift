@@ -2,40 +2,46 @@ import Foundation
 
 final class OperationFormatter {
     // MARK: - Public Methods
-    func makeText(for operation: Operation) -> String {
-        let priceText = AppConfiguration.PriceFormatting.string(from: operation.price)
+    func makeTextForBot(for dayResult: BotDayResult) -> String {
+        let botName = dayResult.botName
+        let currencyPair = dayResult.currencyPair
+        let day = dayResult.day
+        let income = signedText(from: dayResult.income)
+        let incomeCurrencyCode = dayResult.incomeCurrencyCode
+
+        return "\(botName) (\(currencyPair)), day = \(day), income = \(income) \(incomeCurrencyCode)"
+    }
+    
+    func makeTotalIncomeText(currencyCode: String, income: Float) -> String {
+        "\(Constants.totalIncomeTitle)\(signedText(from: income)) \(currencyCode)"
+    }
+    
+    func makeRunSummaryText(botsCount: Int, daysCount: Int, rowsCount: Int) -> String {
+        "\(Constants.summaryTitle)bots = \(botsCount), days = \(daysCount), results = \(rowsCount)"
+    }
+    
+    func makeWalletBalanceText(for item: WalletBalanceItem) -> String {
+        let balanceText = AppConfiguration.PriceFormatting.string(from: item.balance)
+        let creditText = AppConfiguration.PriceFormatting.string(from: item.credit)
         
-        switch operation.operationType {
-        case .buy:
-            return "\(priceText)\(Constants.buyOperationSuffix)"
-        case .sell:
-            guard let startPrice = operation.startPrice,
-                  let income = operation.income else {
-                return "\(priceText)\(Constants.sellOperationSuffix)"
-            }
-            
-            let startPriceText = AppConfiguration.PriceFormatting.string(from: startPrice)
-            let incomeText = AppConfiguration.PriceFormatting.string(from: income)
-            
-            return """
-            \(Constants.sellFromPrefix)\(startPriceText)\
-            \(Constants.sellToSeparator)\(priceText)\
-            \(Constants.sellIncomeSeparator)\(incomeText)
-            """
-        case .ignore:
-            return "\(priceText)\(Constants.ignoreOperationSuffix)"
-        }
+        return "\(Constants.balanceTitle)\(item.currencyCode): \(balanceText), credit = \(creditText)"
+    }
+}
+
+// MARK: - Private Methods
+private extension OperationFormatter {
+    func signedText(from value: Float) -> String {
+        let text = AppConfiguration.PriceFormatting.string(from: value)
+        
+        return value >= .zero ? "+\(text)" : text
     }
 }
 
 // MARK: - Constants
 private extension OperationFormatter {
     enum Constants {
-        static let buyOperationSuffix = " рублей - покупка"
-        static let sellOperationSuffix = " рублей - продажа"
-        static let ignoreOperationSuffix = " рублей - игнорирование"
-        static let sellFromPrefix = "Продажа FROM = "
-        static let sellToSeparator = " -> TO = "
-        static let sellIncomeSeparator = ", INCOME = "
+        static let totalIncomeTitle = "Total income: "
+        static let summaryTitle = "Summary: "
+        static let balanceTitle = "Wallet balance "
     }
 }

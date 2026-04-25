@@ -1,10 +1,12 @@
 import Foundation
 
+// MARK: - Enums
 enum SelectedSide {
     case left
     case right
 }
 
+// MARK: - Models
 struct Currency: Identifiable {
     let id: UUID
     let code: String
@@ -13,6 +15,7 @@ struct Currency: Identifiable {
     var isFavorite: Bool
 }
 
+// MARK: - Enums
 enum CurrencyType {
     case fiat
     case crypto

@@ -1,12 +1,14 @@
 import Foundation
 import CoreGraphics
 
+// MARK: - Enums
 enum CurrencyItemSelectionState {
     case none
     case left
     case right
 }
 
+// MARK: - Models
 struct CurrencyItemViewModel {
     let id: UUID
     let title: String
@@ -14,9 +16,9 @@ struct CurrencyItemViewModel {
     let selectionState: CurrencyItemSelectionState
 }
 
-struct OperationCellViewModel {
+struct BotResultCellViewModel {
     let text: String
-    let operationType: OperationType
+    let tone: ResultTone
 }
 
 struct GraphCandlestickItemViewModel {
@@ -35,6 +37,7 @@ struct LineChartPointViewModel {
     let size: CGFloat
 }
 
+// MARK: - Enums
 enum ResultTone {
     case neutral
     case positive

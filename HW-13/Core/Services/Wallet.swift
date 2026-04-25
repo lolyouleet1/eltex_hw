@@ -1,14 +1,15 @@
 import Foundation
 
 final class Wallet {
-    // MARK: - UI
-    private var balances: [String : Float] = [:]
-    private var credits: [String : Float] = [:]
+    // MARK: - State
+    private var balances: [String: Float] = [:]
+    private var credits: [String: Float] = [:]
     
     // MARK: - Concurrency
-    private let queue = DispatchQueue(label: "wallet.queue")
+    private let queue = DispatchQueue(label: Constants.queueLabel)
     
-    init(startBalance: [String : Float], startCredits: [String : Float]) {
+    // MARK: - Lifecycle
+    init(startBalance: [String: Float], startCredits: [String: Float]) {
         self.balances = startBalance
         self.credits = startCredits
     }
@@ -18,27 +19,25 @@ final class Wallet {
         let fullBuyPrice = price * Float(amount)
         
         queue.sync {
-            if fullBuyPrice > balances[quote.code, default: 0] {
-                let maxBaseValue = AppConfiguration.TradeBotSettings.maxCurrencyBaseValue
-                let maxBuyAmount = AppConfiguration.TradeBotSettings.maxBuyAmount
-                credits[quote.code, default: 0] += maxBaseValue * Float(maxBuyAmount)
-                balances[quote.code, default: 0] += maxBaseValue * Float(maxBuyAmount)
+            if fullBuyPrice > balances[quote.code, default: .zero] {
+                credits[quote.code, default: .zero] += AppConfiguration.Trading.creditRefillAmount
+                balances[quote.code, default: .zero] += AppConfiguration.Trading.creditRefillAmount
             }
             
-            balances[base.code, default: 0] += Float(amount)
-            balances[quote.code, default: 0] -= price * Float(amount)
+            balances[base.code, default: .zero] += Float(amount)
+            balances[quote.code, default: .zero] -= price * Float(amount)
         }
     }
     
     func sell(base: Currency, quote: Currency, price: Float, amount: Int) {
         queue.sync {
-            if amount > Int(balances[base.code, default: 0]) {
-                credits[base.code, default: 0] += 1000
-                balances[base.code, default: 0] += 1000
+            if amount > Int(balances[base.code, default: .zero]) {
+                credits[base.code, default: .zero] += AppConfiguration.Trading.creditRefillAmount
+                balances[base.code, default: .zero] += AppConfiguration.Trading.creditRefillAmount
             }
             
-            balances[base.code, default: 0] -= Float(amount)
-            balances[quote.code, default: 0] += price * Float(amount)
+            balances[base.code, default: .zero] -= Float(amount)
+            balances[quote.code, default: .zero] += price * Float(amount)
         }
     }
     
@@ -47,12 +46,19 @@ final class Wallet {
             let items = balances.keys.map { code in
                 WalletBalanceItem(
                     currencyCode: code,
-                    balance: balances[code, default: 0],
-                    credit: credits[code, default: 0]
+                    balance: balances[code, default: .zero],
+                    credit: credits[code, default: .zero]
                 )
             }
             
             return WalletSnapshot(items: items)
         }
+    }
+}
+
+// MARK: - Constants
+private extension Wallet {
+    enum Constants {
+        static let queueLabel = "wallet.queue"
     }
 }

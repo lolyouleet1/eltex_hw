@@ -1,89 +1,108 @@
 import Foundation
 
 final class BotViewModel {
+    // MARK: - Models
     struct ViewState {
-        let balanceText: String
-        let profitText: String
-        let balanceTone: ResultTone
-        let profitTone: ResultTone
-        let operations: [OperationCellViewModel]
+        let results: [BotResultCellViewModel]
         let isWarningHidden: Bool
         let isTableHidden: Bool
+        let isStartButtonEnabled: Bool
+        let warningText: String
         let leftCurrencyText: String
         let rightCurrencyText: String
+        let botLimitText: String
+        let startButtonTitle: String
     }
     
     // MARK: - Dependencies
-    private let startBalance: Float
     private let tradingRunService: TradingRunService
     private let operationFormatter: OperationFormatter
     private let currencyRepository: CurrencyRepositoryProtocol
     private let currencySelectionService: CurrencySelectionService
+    private let tradeBotNameProvider: TradeBotNameProvider
     
     // MARK: - State
-    private var tradingResult: TradingRunResult?
+    private var resultCells: [BotResultCellViewModel] = []
+    private var botsAmountText = Constants.emptyText
+    private var isRunInProgress = false
     private(set) var viewState: ViewState
-    private var operations: [Operation] = []
     var onStateChange: ((ViewState) -> Void)?
-    private var timer: Timer?
-    var onTradingResultChange: ((TradingRunResult?) -> Void)?
     
     // MARK: - Lifecycle
-    init(startBalance: Float, tradingRunService: TradingRunService, operationFormatter: OperationFormatter, currencyRepository: CurrencyRepositoryProtocol, currencySelectionService: CurrencySelectionService) {
-        self.startBalance = startBalance
+    init(tradingRunService: TradingRunService, operationFormatter: OperationFormatter, currencyRepository: CurrencyRepositoryProtocol, currencySelectionService: CurrencySelectionService, tradeBotNameProvider: TradeBotNameProvider) {
         self.tradingRunService = tradingRunService
         self.operationFormatter = operationFormatter
         self.currencyRepository = currencyRepository
         self.currencySelectionService = currencySelectionService
+        self.tradeBotNameProvider = tradeBotNameProvider
         self.viewState = ViewState(
-            balanceText: Constants.emptyText,
-            profitText: Constants.emptyText,
-            balanceTone: .neutral,
-            profitTone: .neutral,
-            operations: [],
+            results: [],
             isWarningHidden: false,
             isTableHidden: true,
+            isStartButtonEnabled: true,
+            warningText: Constants.defaultWarningText,
             leftCurrencyText: Constants.defaultCurrencyText,
-            rightCurrencyText: Constants.defaultCurrencyText
+            rightCurrencyText: Constants.defaultCurrencyText,
+            botLimitText: Constants.emptyText,
+            startButtonTitle: Constants.startButtonTitle
         )
         
         rebuildState()
-    }
-    
-    deinit {
-        stopLiveUpdates()
     }
     
     // MARK: - Public Methods
-    func handleStart(cyclesText: String?, isBotEnabled: Bool) {
-        guard let text = cyclesText?.trimmingCharacters(in: .whitespacesAndNewlines),
-              let cycles = Int(text),
-              cycles > .zero else { return }
+    func handleStart(botsAmount: String?, isBotEnabled: Bool) {
+        botsAmountText = botsAmount?.trimmingCharacters(in: .whitespacesAndNewlines) ?? Constants.emptyText
+        guard !isBotsAmountInvalid else {
+            rebuildState()
+            onStateChange?(viewState)
+            return
+        }
+        guard !isRunInProgress else { return }
+        guard let numberOfBotsString = botsAmountText.nilIfEmpty,
+              let numberOfBots = Int(numberOfBotsString),
+              numberOfBots > .zero else { return }
         guard isBotEnabled, isCurrencySet else { return }
         
-        let result = tradingRunService.makeResult(
-            startBalance: startBalance,
-            cycles: cycles
-        )
-        tradingResult = result
+        let bots = createBots(arraySize: numberOfBots)
+        guard let pair = bots.first?.pair else { return }
         
-        operations = result.operations
+        isRunInProgress = true
+        rebuildState()
+        onStateChange?(viewState)
         
-        startLiveUpdates()
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            
+            let results = tradingRunService.runBots(bots: bots)
+            let snapshot = tradingRunService.walletSnapshot()
+            
+            DispatchQueue.main.async {
+                self.resultCells = self.makeResultCells(
+                    from: results,
+                    snapshot: snapshot,
+                    pair: pair,
+                    botsCount: bots.count
+                )
+                self.isRunInProgress = false
+                self.rebuildState()
+                self.onStateChange?(self.viewState)
+            }
+        }
+    }
+    
+    func handleBotsAmountChange(_ botsAmount: String?) {
+        botsAmountText = botsAmount?.trimmingCharacters(in: .whitespacesAndNewlines) ?? Constants.emptyText
         rebuildState()
         
         onStateChange?(viewState)
-        onTradingResultChange?(tradingResult)
     }
     
     func handleClear() {
-        tradingResult = nil
-        stopLiveUpdates()
-        operations.removeAll()
+        resultCells.removeAll()
         rebuildState()
         
         onStateChange?(viewState)
-        onTradingResultChange?(nil)
     }
     
     func handleRandomCurrencies() {
@@ -96,61 +115,41 @@ final class BotViewModel {
         
         rebuildState()
     }
-    
-    func makeGraphResult() -> TradingRunResult? {
-        tradingResult
-    }
 }
 
 // MARK: - Private Methods
 private extension BotViewModel {
+    var isBotsAmountInvalid: Bool {
+        guard let botsAmount = Int(botsAmountText) else { return false }
+        
+        return botsAmount > tradeBotNameProvider.maxNamesCount
+    }
+    
     var isCurrencySet: Bool {
         currencySelectionService.selectedCurrencyID(for: .left) != nil
         && currencySelectionService.selectedCurrencyID(for: .right) != nil
     }
     
-    func makeAmountText(title: String, value: Float) -> String {
-        "\(title)\(AppConfiguration.PriceFormatting.string(from: value))"
-    }
-    
     func rebuildState() {
-        if let tradingResult {
-            viewState = makeResultState(from: tradingResult)
-        } else {
-            viewState = makeInitialState()
-        }
-    }
-    
-    func makeInitialState() -> ViewState {
-        let operationCells = makeOperationCells(from: operations)
-        
-        return ViewState(
-            balanceText: makeAmountText(title: Constants.balanceTitle, value: startBalance),
-            profitText: makeAmountText(title: Constants.profitTitle, value: .zero),
-            balanceTone: .neutral,
-            profitTone: .neutral,
-            operations: operationCells,
-            isWarningHidden: false,
-            isTableHidden: true,
+        viewState = ViewState(
+            results: resultCells,
+            isWarningHidden: isWarningHidden,
+            isTableHidden: resultCells.isEmpty,
+            isStartButtonEnabled: !isRunInProgress && !isBotsAmountInvalid,
+            warningText: warningText,
             leftCurrencyText: selectedCurrencyText(for: .left),
-            rightCurrencyText: selectedCurrencyText(for: .right)
+            rightCurrencyText: selectedCurrencyText(for: .right),
+            botLimitText: makeBotLimitText(maxBotsCount: tradeBotNameProvider.maxNamesCount),
+            startButtonTitle: isRunInProgress ? Constants.runningButtonTitle : Constants.startButtonTitle
         )
     }
     
-    func makeResultState(from tradingResult: TradingRunResult) -> ViewState {
-        let operationCells = makeOperationCells(from: operations)
-        
-        return ViewState(
-            balanceText: makeAmountText(title: Constants.balanceTitle, value: tradingResult.finalBalance),
-            profitText: makeAmountText(title: Constants.profitTitle, value: tradingResult.finalProfit),
-            balanceTone: tradingResult.finalBalance < startBalance ? .negative : .positive,
-            profitTone: tradingResult.finalProfit < .zero ? .negative : .positive,
-            operations: operationCells,
-            isWarningHidden: true,
-            isTableHidden: false,
-            leftCurrencyText: selectedCurrencyText(for: .left),
-            rightCurrencyText: selectedCurrencyText(for: .right)
-        )
+    var isWarningHidden: Bool {
+        !isBotsAmountInvalid && !resultCells.isEmpty
+    }
+    
+    var warningText: String {
+        isBotsAmountInvalid ? Constants.notEnoughBotsWarningText : Constants.defaultWarningText
     }
     
     func selectedCurrencyText(for side: SelectedSide) -> String {
@@ -162,80 +161,106 @@ private extension BotViewModel {
         return currency.code
     }
     
-    private func makeRandomOperationType() -> OperationType {
-        [.buy, .sell, .ignore].randomElement() ?? .ignore
+    func makeResultCells(from results: [BotDayResult], snapshot: WalletSnapshot, pair: CurrencyPair, botsCount: Int) -> [BotResultCellViewModel] {
+        var cells = results.map {
+            BotResultCellViewModel(
+                text: operationFormatter.makeTextForBot(for: $0),
+                tone: makeTone(from: $0.income)
+            )
+        }
+        
+        cells.append(
+            BotResultCellViewModel(
+                text: operationFormatter.makeRunSummaryText(
+                    botsCount: botsCount,
+                    daysCount: AppConfiguration.TradeBotSettings.workingDays,
+                    rowsCount: results.count
+                ),
+                tone: .neutral
+            )
+        )
+        
+        let incomesByCurrency = Dictionary(grouping: results, by: \.incomeCurrencyCode)
+        let sortedIncomeCurrencies = incomesByCurrency.keys.sorted()
+        
+        for currencyCode in sortedIncomeCurrencies {
+            let totalIncome = incomesByCurrency[currencyCode]?.reduce(.zero) {
+                $0 + $1.income
+            } ?? .zero
+            
+            cells.append(
+                BotResultCellViewModel(
+                    text: operationFormatter.makeTotalIncomeText(
+                        currencyCode: currencyCode,
+                        income: totalIncome
+                    ),
+                    tone: makeTone(from: totalIncome)
+                )
+            )
+        }
+        
+        let pairCodes = [pair.base.code, pair.quote.code]
+        let balanceItems = snapshot.items
+            .filter { pairCodes.contains($0.currencyCode) }
+            .sorted { $0.currencyCode < $1.currencyCode }
+        
+        for item in balanceItems {
+            cells.append(
+                BotResultCellViewModel(
+                    text: operationFormatter.makeWalletBalanceText(for: item),
+                    tone: .neutral
+                )
+            )
+        }
+        
+        return cells
     }
     
-    private func addNextOperation() {
-        let operationType = makeRandomOperationType()
-        let price = Float.random(in: Constants.priceRange)
-        
-        let snapshot = MarketSnapshot(
-            currentPrice: price,
-            buyOrders: Int.random(in: Constants.ordersRange),
-            sellOrders: Int.random(in: Constants.ordersRange)
-        )
-
-        let operation = Operation(
-            id: UUID(),
-            operationType: operationType,
-            snapshot: snapshot,
-            startPrice: nil,
-            income: nil
-        )
-        
-        operations.append(operation)
-        
-        tradingResult = TradingRunResult(
-            cycles: operations.count,
-            finalBalance: tradingResult?.finalBalance ?? startBalance,
-            finalProfit: tradingResult?.finalProfit ?? .zero,
-            operations: operations,
-            candlesticks: CandlestickFactory.makeCandlesticks(from: operations),
-            lineChartPoints: LinesFactory.makeLinePoints(from: operations)
-        )
-
-        rebuildState()
-        
-        onStateChange?(viewState)
-        onTradingResultChange?(tradingResult)
+    func makeTone(from income: Float) -> ResultTone {
+        income >= .zero ? .positive : .negative
     }
     
-    func makeOperationCells(from operations: [Operation]) -> [OperationCellViewModel] {
-        operations.map {
-            OperationCellViewModel(
-                text: operationFormatter.makeText(for: $0),
-                operationType: $0.operationType
+    func createBots(arraySize: Int) -> [WalletBot] {
+        guard let leftCurrencyID = currencySelectionService.leftCurrencyID,
+              let rightCurrencyID = currencySelectionService.rightCurrencyID,
+              let leftCurrency = currencyRepository.getCurrency(id: leftCurrencyID),
+              let rightCurrency = currencyRepository.getCurrency(id: rightCurrencyID) else {
+            return []
+        }
+        
+        tradeBotNameProvider.reset()
+        
+        return (0..<arraySize).compactMap { _ in
+            guard let name = tradeBotNameProvider.getRandomName() else { return nil }
+            
+            return WalletBot(
+                name: name,
+                pair: CurrencyPair(base: leftCurrency, quote: rightCurrency)
             )
         }
     }
-}
-
-// MARK: - Timer
-private extension BotViewModel {
-    func startLiveUpdates() {
-        timer?.invalidate()
-        
-        timer = Timer.scheduledTimer(withTimeInterval: Constants.timerInterval, repeats: true) { [weak self] _ in
-            self?.addNextOperation()
-        }
-    }
     
-    func stopLiveUpdates() {
-        timer?.invalidate()
-        timer = nil
+    func makeBotLimitText(maxBotsCount: Int) -> String {
+        "\(Constants.botLimitTitle)\(maxBotsCount)"
     }
 }
 
 // MARK: - Constants
 private extension BotViewModel {
     enum Constants {
-        static let emptyText = ""
-        static let balanceTitle = "Balance: "
-        static let profitTitle = "Profit: "
         static let defaultCurrencyText = "Choose"
-        static let priceRange: ClosedRange<Float> = 80...150
-        static let ordersRange: ClosedRange<Int> = 100...900
-        static let timerInterval: TimeInterval = 3
+        static let startButtonTitle = "START BOT"
+        static let runningButtonTitle = "RUNNING..."
+        static let botLimitTitle = "Number of bots available: "
+        static let defaultWarningText = "WARNING: not enough data"
+        static let notEnoughBotsWarningText = "WARNING: not enough bots"
+        static let emptyText = ""
+    }
+}
+
+// MARK: - Helpers
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
     }
 }

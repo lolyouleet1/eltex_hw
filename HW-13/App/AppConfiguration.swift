@@ -1,11 +1,14 @@
 import Foundation
 
 enum AppConfiguration {
+    // MARK: - Trading
     enum Trading {
         static let startBalance: Float = 10_000
         static let startCredit: Float = 0
+        static let creditRefillAmount: Float = 1_000
     }
     
+    // MARK: - Price Formatting
     enum PriceFormatting {
         static let minimumFractionDigits = 2
         static let maximumFractionDigits = 2
@@ -29,6 +32,7 @@ enum AppConfiguration {
         }
     }
     
+    // MARK: - Trade Bot Settings
     enum TradeBotSettings {
         static let minOperationsPerDay: Int = 100
         static let maxOperationsPerDay: Int = 1000
